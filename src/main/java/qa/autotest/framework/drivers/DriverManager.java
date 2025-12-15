@@ -45,7 +45,15 @@ public class DriverManager {
      */
     public static void initDriver(TestConfig config) {
         String browser = config.browser().toLowerCase();
-        boolean headless = config.browserHeadless();
+        
+        // Support both -Dheadless=true and -Dbrowser.headless=true
+        boolean headless = false;
+        if (config.headless() != null) {
+            headless = config.headless(); // Priority to short form
+        } else if (config.browserHeadless() != null) {
+            headless = config.browserHeadless();
+        }
+        
         String remoteUrl = config.browserRemoteUrl();
         
         log.info("Initializing {} driver (headless: {}) on thread: {}", 
@@ -141,14 +149,24 @@ public class DriverManager {
         options.addArguments("--no-sandbox");
         options.addArguments("--disable-gpu");
         options.addArguments("--disable-blink-features=AutomationControlled");
-        
-        // Disable password manager and save password bubbles
+        options.addArguments("--incognito");
+
+        // Additional password manager safeguards (redundant with incognito but ensures compatibility)
         options.addArguments("--disable-save-password-bubble");
+        options.addArguments("--disable-password-generation");
+        options.addArguments("--disable-password-manager-reauthentication");
+
+        // Comprehensive preferences to disable password manager and autofill
         options.setExperimentalOption("prefs", Map.of(
             "credentials_enable_service", false,
             "profile.password_manager_enabled", false,
-            "profile.default_content_setting_values.notifications", 2
+            "profile.default_content_setting_values.notifications", 2,
+            "profile.default_content_settings.popups", 0,
+            "autofill.profile_enabled", false
         ));
+
+        // Exclude automation switches that might trigger credential prompts
+        options.setExperimentalOption("excludeSwitches", new String[]{"enable-automation"});
         
         if (headless) {
             options.addArguments("--headless=new");

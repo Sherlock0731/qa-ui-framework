@@ -90,7 +90,14 @@ public interface TestConfig extends Config {
     String browser();
     
     @Key("browser.headless")
+    @DefaultValue("false")
     Boolean browserHeadless();
+    
+    /**
+     * Alternative key for headless mode (supports both -Dheadless=true and -Dbrowser.headless=true)
+     */
+    @Key("headless")
+    Boolean headless();
     
     @Key("browser.width")
     Integer browserWidth();
