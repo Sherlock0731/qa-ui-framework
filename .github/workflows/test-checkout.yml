@@ -94,7 +94,7 @@ jobs:
           CHECKOUT_LASTNAME: ${{ secrets.CHECKOUT_LASTNAME }}
           CHECKOUT_ZIPCODE: ${{ secrets.CHECKOUT_ZIPCODE }}
         run: |
-          mvn clean test \
+          mvn test \
             -Denv=ci \
             -Dbrowser=${{ github.event.inputs.browser || 'chrome' }} \
             -Dheadless=true \

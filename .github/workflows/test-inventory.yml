@@ -91,7 +91,7 @@ jobs:
           USER_STANDARD_USERNAME: ${{ secrets.USER_STANDARD_USERNAME }}
           USER_STANDARD_PASSWORD: ${{ secrets.USER_STANDARD_PASSWORD }}
         run: |
-          mvn clean test \
+          mvn test \
             -Denv=ci \
             -Dbrowser=${{ github.event.inputs.browser || 'chrome' }} \
             -Dheadless=true \

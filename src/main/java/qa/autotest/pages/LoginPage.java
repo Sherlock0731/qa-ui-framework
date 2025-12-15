@@ -50,6 +50,8 @@ public class LoginPage {
         usernameInput.setValue(username);
         passwordInput.setValue(password);
         loginButton.click();
+        // Wait for login button to disappear (navigation started)
+        loginButton.shouldNotBe(Condition.visible);
         return new InventoryPage();
     }
     
