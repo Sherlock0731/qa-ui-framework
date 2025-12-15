@@ -38,8 +38,7 @@ qa-ui-framework/
 │   │   │   ├── pages/                # Page Object Model
 │   │   │   └── framework/            # Core framework
 │   │   │       ├── drivers/          # WebDriver management
-│   │   │       ├── config/           # Configuration
-│   │   │       └── utils/            # Utilities
+│   │   │       └── config/           # Configuration
 │   │   └── resources/
 │   │       ├── config/               # Environment configs
 │   │       └── logback.xml           # Logging config
@@ -138,7 +137,7 @@ mvn clean test -Psmoke,parallel -Dthread.count=3
 mvn allure:serve
 ```
 
-**⚠️ Важно:**
+**Важно:**
 - По умолчанию тесты запускаются **последовательно** (один браузер за раз)
 - Для параллельного запуска обязательно используйте профиль **`-Pparallel`**
 - Параметр `-Dthread.count` работает только с профилем `-Pparallel`
