@@ -5,8 +5,7 @@
 [![Selenide](https://img.shields.io/badge/Selenide-7.0.4-green.svg)](https://selenide.org/)
 [![Allure](https://img.shields.io/badge/Allure-2.25.0-yellow.svg)](http://allure.qatools.ru/)
 
-![Tests](https://github.com/Sherlock0731/qa-ui-framework/actions/workflows/test-all.yml/badge.svg)
-
+![Tests](https://github.com/Sherlock0731/qa-ui-framework/actions/workflows/test-all.yml/badge.svg)    
 [![Allure Report](https://img.shields.io/badge/Allure-Report-orange)](https://sherlock0731.github.io/qa-ui-framework/)
 
 Многопоточный фреймворк для автоматизации UI-тестирования веб-приложений с использованием современного стека технологий.
