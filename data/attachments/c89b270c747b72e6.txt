@@ -1,5 +1,0 @@
-webdriver should have url containing inventory.html
-Actual value: https://www.saucedemo.com/
-Screenshot: file:/home/runner/work/qa-ui-framework/qa-ui-framework/target/screenshots/1765817578116.1.png
-Page source: file:/home/runner/work/qa-ui-framework/qa-ui-framework/target/screenshots/1765817578116.1.html
-Timeout: 10 s.
