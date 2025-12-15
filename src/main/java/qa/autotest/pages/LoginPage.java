@@ -47,11 +47,20 @@ public class LoginPage {
     @Step("Login with username: {username}")
     public InventoryPage login(String username, String password) {
         log.info("Logging in with username: {}", username);
-        usernameInput.shouldBe(Condition.visible).clear();
-        usernameInput.setValue(username);
-        passwordInput.shouldBe(Condition.visible).clear();
-        passwordInput.setValue(password);
+        
+        // Clear and fill username field (using sendKeys for better headless compatibility)
+        usernameInput.shouldBe(Condition.visible);
+        usernameInput.clear();
+        usernameInput.sendKeys(username);
+        
+        // Clear and fill password field
+        passwordInput.shouldBe(Condition.visible);
+        passwordInput.clear();
+        passwordInput.sendKeys(password);
+        
+        // Click login button
         loginButton.shouldBe(Condition.enabled).click();
+        
         return new InventoryPage();
     }
     
@@ -76,8 +85,8 @@ public class LoginPage {
     @Step("Attempt login with username: {username} (expecting error)")
     public LoginPage loginWithError(String username, String password) {
         log.info("Attempting login with username: {} (expecting error)", username);
-        usernameInput.setValue(username);
-        passwordInput.setValue(password);
+        usernameInput.sendKeys(username);
+        passwordInput.sendKeys(password);
         loginButton.click();
         errorMessage.shouldBe(Condition.visible);
         return this;
@@ -92,7 +101,7 @@ public class LoginPage {
     @Step("Enter username: {username}")
     public LoginPage enterUsername(String username) {
         log.debug("Entering username: {}", username);
-        usernameInput.setValue(username);
+        usernameInput.sendKeys(username);
         return this;
     }
     
@@ -105,7 +114,7 @@ public class LoginPage {
     @Step("Enter password")
     public LoginPage enterPassword(String password) {
         log.debug("Entering password");
-        passwordInput.setValue(password);
+        passwordInput.sendKeys(password);
         return this;
     }
     
