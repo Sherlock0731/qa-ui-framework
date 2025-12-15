@@ -150,9 +150,6 @@ public class DriverManager {
             "profile.default_content_setting_values.notifications", 2
         ));
         
-        // Incognito mode to avoid any saved state
-        options.addArguments("--incognito");
-        
         if (headless) {
             options.addArguments("--headless=new");
         }

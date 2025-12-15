@@ -47,11 +47,11 @@ public class LoginPage {
     @Step("Login with username: {username}")
     public InventoryPage login(String username, String password) {
         log.info("Logging in with username: {}", username);
+        usernameInput.shouldBe(Condition.visible).clear();
         usernameInput.setValue(username);
+        passwordInput.shouldBe(Condition.visible).clear();
         passwordInput.setValue(password);
-        loginButton.click();
-        // Wait for login button to disappear (navigation started)
-        loginButton.shouldNotBe(Condition.visible);
+        loginButton.shouldBe(Condition.enabled).click();
         return new InventoryPage();
     }
     
