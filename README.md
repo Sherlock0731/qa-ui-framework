@@ -242,6 +242,8 @@ mvn clean test -Dthread.count=8
 - [Архитектура](docs/ARCHITECTURE.md)
 - [Примеры команд](docs/COMMANDS_EXAMPLES.md)
 - [Инструкция по запуску](docs/RUN_INSTRUCTIONS.md)
+- [Параллельное выполнение тестов](docs/PARALLEL_EXECUTION.md)
+- [Настройка WebDriver](docs/WEBDRIVER_CONFIGURATION.md)
 - [Матрица тест-кейсов](docs/TEST_CASES_MATRIX.md)
 
 ## License
