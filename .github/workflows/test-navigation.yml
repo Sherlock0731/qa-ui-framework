@@ -1,0 +1,116 @@
+name: UI Tests - Navigation
+
+on:
+  workflow_dispatch:
+    inputs:
+      browser:
+        description: 'Browser to use'
+        default: 'chrome'
+        type: choice
+        options: ['chrome','firefox']
+
+jobs:
+  test-navigation:
+    runs-on: ubuntu-latest
+
+    steps:
+      # ─────────────────────────────────────────────
+      # Checkout source code
+      # ─────────────────────────────────────────────
+      - uses: actions/checkout@v4
+
+      # ─────────────────────────────────────────────
+      # Setup Java
+      # ─────────────────────────────────────────────
+      - uses: actions/setup-java@v4
+        with:
+          distribution: temurin
+          java-version: 17
+          cache: maven
+
+      # ─────────────────────────────────────────────
+      # Install browsers
+      # ─────────────────────────────────────────────
+      - name: Install browsers
+        run: |
+          sudo apt-get update
+          sudo apt-get install -y google-chrome-stable firefox
+
+      # ─────────────────────────────────────────────
+      # Restore Allure history from gh-pages
+      # ─────────────────────────────────────────────
+      - name: Checkout gh-pages (Allure history)
+        uses: actions/checkout@v4
+        with:
+          ref: gh-pages
+          path: gh-pages
+        continue-on-error: true
+
+      - name: Restore Allure history
+        run: |
+          mkdir -p target/allure-results/history
+          if [ -d gh-pages/history ]; then
+            cp -r gh-pages/history/* target/allure-results/history/
+          fi
+
+      # ─────────────────────────────────────────────
+      # Create Allure executor.json
+      # ─────────────────────────────────────────────
+      - name: Create Allure executor info
+        run: |
+          mkdir -p target/allure-results
+          cat <<EOFINNER > target/allure-results/executor.json
+          {
+            "name": "GitHub Actions",
+            "type": "github",
+            "buildName": "${{ github.workflow }}",
+            "buildUrl": "https://github.com/${{ github.repository }}/actions/runs/${{ github.run_id }}",
+            "buildOrder": "${{ github.run_number }}",
+            "reportUrl": "https://sherlock0731.github.io/qa-ui-framework/"
+          }
+          EOFINNER
+
+      # ─────────────────────────────────────────────
+      # Create Allure environment.properties
+      # ─────────────────────────────────────────────
+      - name: Create Allure environment info
+        run: |
+          cat <<EOFINNER > target/allure-results/environment.properties
+          Browser=${{ github.event.inputs.browser || 'chrome' }}
+          Environment=CI
+          Workflow=${{ github.workflow }}
+          Test Suite=Navigation
+          EOFINNER
+
+      # ─────────────────────────────────────────────
+      # Run Navigation tests
+      # ─────────────────────────────────────────────
+      - name: Run Navigation tests
+        env:
+          SAUCEDEMO_BASE_URL: ${{ secrets.SAUCEDEMO_BASE_URL }}
+          USER_STANDARD_USERNAME: ${{ secrets.USER_STANDARD_USERNAME }}
+          USER_STANDARD_PASSWORD: ${{ secrets.USER_STANDARD_PASSWORD }}
+        run: |
+          mvn clean test \
+            -Denv=ci \
+            -Dbrowser=${{ github.event.inputs.browser || 'chrome' }} \
+            -Dheadless=true \
+            -Dgroups=navigation \
+            -Dallure.results.directory=target/allure-results
+
+      # ─────────────────────────────────────────────
+      # Generate Allure report
+      # ─────────────────────────────────────────────
+      - name: Generate Allure Report
+        if: always()
+        run: mvn allure:report
+
+      # ─────────────────────────────────────────────
+      # Deploy Allure report to gh-pages
+      # ─────────────────────────────────────────────
+      - name: Deploy Allure report
+        if: always()
+        uses: peaceiris/actions-gh-pages@v3
+        with:
+          github_token: ${{ secrets.GITHUB_TOKEN }}
+          publish_dir: target/site/allure-maven-plugin

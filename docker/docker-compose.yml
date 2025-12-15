@@ -1,0 +1,23 @@
+version: '3.8'
+
+services:
+  ui-tests:
+    build:
+      context: ..
+      dockerfile: docker/Dockerfile
+    environment:
+      - ENV=ci
+      - BROWSER=${BROWSER:-chrome}
+      - BROWSER_HEADLESS=true
+      - THREAD_COUNT=${THREAD_COUNT:-4}
+      - SAUCEDEMO_BASE_URL=${SAUCEDEMO_BASE_URL:-https://www.saucedemo.com}
+      - TEST_GROUPS=${TEST_GROUPS:-}
+    volumes:
+      - ../target:/app/target
+    command: >
+      mvn clean test
+      -Denv=ci
+      -Dbrowser=${BROWSER:-chrome}
+      -Dheadless=true
+      -Dthread.count=${THREAD_COUNT:-4}
+      -Dtest.groups=${TEST_GROUPS:-}
