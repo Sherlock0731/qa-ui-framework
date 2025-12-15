@@ -65,7 +65,7 @@ public class LoginFailureTests extends BaseTest {
         loginPage
                 .openPage(CONFIG.sauceDemoBaseUrl())
                 .loginWithError(CONFIG.lockedUsername(), CONFIG.lockedPassword());
-        
+        System.out.println("LOCKED_USER = " + CONFIG.lockedUsername());
         String errorMessage = loginPage.getErrorMessage();
         assertThat(errorMessage)
                 .as("Error message should indicate user is locked out")
