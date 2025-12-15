@@ -40,8 +40,7 @@ public class InventoryPage extends BasePage {
     public InventoryPage waitForPageLoad() {
         log.info("Waiting for inventory page to load");
         // Wait for URL to contain inventory.html (important for navigation after login)
-        Selenide.Wait().withTimeout(Duration.ofSeconds(10))
-                .until(driver -> driver.getCurrentUrl().contains("inventory.html"));
+        Selenide.webdriver().shouldHave(Condition.urlContaining("inventory.html"), Duration.ofSeconds(10));
         // Wait for React to render elements with increased timeout
         inventoryItems.shouldHave(CollectionCondition.sizeGreaterThan(0), Duration.ofSeconds(15));
         sortDropdown.shouldBe(Condition.visible, Duration.ofSeconds(10));
