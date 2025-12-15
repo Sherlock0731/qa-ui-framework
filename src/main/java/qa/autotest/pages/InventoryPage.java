@@ -5,6 +5,7 @@ import com.codeborne.selenide.Condition;
 import com.codeborne.selenide.ElementsCollection;
 import com.codeborne.selenide.Selenide;
 import com.codeborne.selenide.SelenideElement;
+import com.codeborne.selenide.WebDriverConditions;
 import io.qameta.allure.Step;
 import lombok.extern.slf4j.Slf4j;
 import qa.autotest.app.dto.ProductDto;
@@ -40,7 +41,7 @@ public class InventoryPage extends BasePage {
     public InventoryPage waitForPageLoad() {
         log.info("Waiting for inventory page to load");
         // Wait for URL to contain inventory.html (important for navigation after login)
-        Selenide.webdriver().shouldHave(Condition.urlContaining("inventory.html"), Duration.ofSeconds(10));
+        Selenide.webdriver().shouldHave(WebDriverConditions.urlContaining("inventory.html"), Duration.ofSeconds(10));
         // Wait for React to render elements with increased timeout
         inventoryItems.shouldHave(CollectionCondition.sizeGreaterThan(0), Duration.ofSeconds(15));
         sortDropdown.shouldBe(Condition.visible, Duration.ofSeconds(10));
