@@ -3,11 +3,13 @@ package qa.autotest.pages;
 import com.codeborne.selenide.CollectionCondition;
 import com.codeborne.selenide.Condition;
 import com.codeborne.selenide.ElementsCollection;
+import com.codeborne.selenide.Selenide;
 import com.codeborne.selenide.SelenideElement;
 import io.qameta.allure.Step;
 import lombok.extern.slf4j.Slf4j;
 import qa.autotest.app.dto.ProductDto;
 
+import java.time.Duration;
 import java.util.ArrayList;
 import java.util.List;
 
@@ -37,8 +39,13 @@ public class InventoryPage extends BasePage {
     @Step("Wait for inventory page to load")
     public InventoryPage waitForPageLoad() {
         log.info("Waiting for inventory page to load");
-        inventoryItems.shouldHave(CollectionCondition.sizeGreaterThan(0));
-        sortDropdown.shouldBe(Condition.visible); // Wait for React to render sort dropdown
+        // Wait for URL to contain inventory.html (important for navigation after login)
+        Selenide.Wait().withTimeout(Duration.ofSeconds(10))
+                .until(driver -> driver.getCurrentUrl().contains("inventory.html"));
+        // Wait for React to render elements with increased timeout
+        inventoryItems.shouldHave(CollectionCondition.sizeGreaterThan(0), Duration.ofSeconds(15));
+        sortDropdown.shouldBe(Condition.visible, Duration.ofSeconds(10));
+        log.info("Inventory page loaded successfully");
         return this;
     }
     
