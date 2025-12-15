@@ -1,1 +1,1 @@
-{"total":1,"items":[{"uid":"1193fdf31b0255e0d7b4a4e838985db8","name":"SauceDemo E-Commerce","statistic":{"failed":0,"broken":5,"skipped":0,"passed":0,"unknown":0,"total":5}}]}
+{"total":1,"items":[{"uid":"1193fdf31b0255e0d7b4a4e838985db8","name":"SauceDemo E-Commerce","statistic":{"failed":0,"broken":0,"skipped":0,"passed":5,"unknown":0,"total":5}}]}
