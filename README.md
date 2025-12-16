@@ -211,7 +211,7 @@ THREAD_COUNT=1
 
 ```bash
 # Запустить с 8 потоками
-mvn clean test -Dthread.count=8
+mvn clean test -Pparallel -Dthread.count=8
 ```
 
 Каждый поток создает свой экземпляр WebDriver и имеет отдельный лог-файл.
