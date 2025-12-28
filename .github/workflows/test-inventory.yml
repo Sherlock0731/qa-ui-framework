@@ -46,11 +46,14 @@ jobs:
           path: gh-pages
         continue-on-error: true
 
-      - name: Restore Allure history
+      - name: Backup Allure history to temp
         run: |
-          mkdir -p target/allure-results/history
+          mkdir -p /tmp/allure-history
           if [ -d gh-pages/history ]; then
-            cp -r gh-pages/history/* target/allure-results/history/
+            cp -r gh-pages/history/* /tmp/allure-history/
+            echo "Backed up $(ls -1 /tmp/allure-history 2>/dev/null | wc -l) history files"
+          else
+            echo "No history found (first run or gh-pages branch doesn't exist)"
           fi
 
       # ─────────────────────────────────────────────
@@ -66,7 +69,7 @@ jobs:
             "buildName": "${{ github.workflow }}",
             "buildUrl": "https://github.com/${{ github.repository }}/actions/runs/${{ github.run_id }}",
             "buildOrder": "${{ github.run_number }}",
-            "reportUrl": "https://sherlock0731.github.io/qa-ui-framework/"
+            "reportUrl": "https://${{ github.repository_owner }}.github.io/${{ github.event.repository.name }}/"
           }
           EOFINNER
 
@@ -83,7 +86,7 @@ jobs:
           EOFINNER
 
       # ─────────────────────────────────────────────
-      # Run Inventory tests
+      # Run Inventory tests (JUnit)
       # ─────────────────────────────────────────────
       - name: Run Inventory tests
         env:
@@ -91,12 +94,26 @@ jobs:
           USER_STANDARD_USERNAME: ${{ secrets.USER_STANDARD_USERNAME }}
           USER_STANDARD_PASSWORD: ${{ secrets.USER_STANDARD_PASSWORD }}
         run: |
-          mvn test \
+          mvn clean test \
             -Denv=ci \
             -Dbrowser=${{ github.event.inputs.browser || 'chrome' }} \
             -Dheadless=true \
             -Dgroups=inventory \
             -Dallure.results.directory=target/allure-results
+
+      # ─────────────────────────────────────────────
+      # Restore Allure history before report generation
+      # ─────────────────────────────────────────────
+      - name: Restore Allure history
+        if: always()
+        run: |
+          mkdir -p target/allure-results/history
+          if [ -d /tmp/allure-history ] && [ "$(ls -A /tmp/allure-history 2>/dev/null)" ]; then
+            cp -r /tmp/allure-history/* target/allure-results/history/
+            echo "Restored $(ls -1 target/allure-results/history 2>/dev/null | wc -l) history files"
+          else
+            echo "No history to restore"
+          fi
 
       # ─────────────────────────────────────────────
       # Generate Allure report
@@ -108,12 +125,32 @@ jobs:
       # ─────────────────────────────────────────────
       # Deploy Allure report to gh-pages
       # ─────────────────────────────────────────────
-      - name: Deploy Allure report
+      - name: Deploy Allure report to GitHub Pages
         if: always()
         uses: peaceiris/actions-gh-pages@v3
         with:
           github_token: ${{ secrets.GITHUB_TOKEN }}
           publish_dir: target/site/allure-maven-plugin
+          keep_files: false
+          user_name: 'github-actions[bot]'
+          user_email: 'github-actions[bot]@users.noreply.github.com'
+
+      - name: Report deployment info
+        if: always()
+        run: |
+          echo "━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━"
+          echo "   Allure Report Deployment"
+          echo "━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━"
+          echo ""
+          echo "   Report URL:"
+          echo "   https://${{ github.repository_owner }}.github.io/${{ github.event.repository.name }}/"
+          echo ""
+          echo "   Note: GitHub Pages deployment may take 5-10 minutes"
+          echo ""
+          echo "   Check deployment status:"
+          echo "   https://github.com/${{ github.repository }}/deployments"
+          echo ""
+          echo "━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━"
 
       # ─────────────────────────────────────────────
       # Upload artifacts
@@ -122,7 +159,7 @@ jobs:
         if: always()
         uses: actions/upload-artifact@v4
         with:
-          name: allure-results-all
+          name: allure-results-inventory
           path: target/allure-results
           retention-days: 30
 
@@ -130,7 +167,7 @@ jobs:
         if: always()
         uses: actions/upload-artifact@v4
         with:
-          name: allure-report-all
+          name: allure-report-inventory
           path: target/site/allure-maven-plugin
           retention-days: 30
 
@@ -138,7 +175,7 @@ jobs:
         if: always()
         uses: actions/upload-artifact@v4
         with:
-          name: test-logs-all
+          name: test-logs-inventory
           path: target/logs/
           retention-days: 7
 
@@ -146,7 +183,7 @@ jobs:
         if: failure()
         uses: actions/upload-artifact@v4
         with:
-          name: screenshots-all
+          name: screenshots-inventory
           path: target/screenshots/
           retention-days: 7
 
@@ -155,4 +192,4 @@ jobs:
         uses: EnricoMi/publish-unit-test-result-action@v2
         with:
           files: target/surefire-reports/*.xml
-          check_name: Test Results - All Tests
+          check_name: Test Results - Inventory Tests
