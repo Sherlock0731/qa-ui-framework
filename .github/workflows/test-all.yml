@@ -68,34 +68,29 @@ jobs:
           fi
 
       # ─────────────────────────────────────────────
-      # Create Allure executor.json
+      # Create Allure environment info
       # ─────────────────────────────────────────────
       - name: Create Allure executor info
         run: |
           mkdir -p target/allure-results
-          cat <<EOFINNER > target/allure-results/executor.json
-          {
-            "name": "GitHub Actions",
-            "type": "github",
-            "buildName": "${{ github.workflow }}",
-            "buildUrl": "https://github.com/${{ github.repository }}/actions/runs/${{ github.run_id }}",
-            "buildOrder": "${{ github.run_number }}",
-            "reportUrl": "https://${{ github.repository_owner }}.github.io/${{ github.event.repository.name }}/"
-          }
-          EOFINNER
-
-      # ─────────────────────────────────────────────
-      # Create Allure environment.properties
-      # ─────────────────────────────────────────────
-      - name: Create Allure environment info
-        run: |
-          cat <<EOFINNER > target/allure-results/environment.properties
+          cat > target/allure-results/environment.properties << EOFINNER
           Browser=${{ github.event.inputs.browser || 'chrome' }}
+          Browser.Version=stable
           Threads=${{ github.event.inputs.thread_count || '4' }}
+          Profile=parallel-strict
           Environment=CI
+          Platform=ubuntu-latest
+          Java.Version=17
+          Maven.Version=3.8+
+          Framework=JUnit 5
           Workflow=${{ github.workflow }}
-          Test Suite=All Tests
+          Run.Number=${{ github.run_number }}
+          Triggered.By=${{ github.actor }}
+          Branch=${{ github.ref_name }}
+          Commit=${{ github.sha }}
+          Repository=${{ github.repository }}
           EOFINNER
+          echo "Created environment.properties"
 
       # ─────────────────────────────────────────────
       # Run UI tests (JUnit)
@@ -118,9 +113,20 @@ jobs:
             -Dthread.count=${{ github.event.inputs.thread_count || '4' }} \
             -Dallure.results.directory=target/allure-results
 
-      # ─────────────────────────────────────────────
-      # Restore Allure history before report generation
-      # ─────────────────────────────────────────────
+      - name: Create Allure executor info
+        if: always()
+        run: |
+          cat > target/allure-results/executor.json << EOFINNER
+          {
+            "name": "GitHub Actions",
+            "type": "github",
+            "buildName": "${{ github.workflow }} #${{ github.run_number }}",
+            "buildUrl": "https://github.com/${{ github.repository }}/actions/runs/${{ github.run_id }}",
+            "buildOrder": ${{ github.run_number }},
+            "reportUrl": "https://${{ github.repository_owner }}.github.io/${{ github.event.repository.name }}/"
+          }
+          EOFINNER
+
       - name: Restore Allure history
         if: always()
         run: |
@@ -128,8 +134,6 @@ jobs:
           if [ -d /tmp/allure-history ] && [ "$(ls -A /tmp/allure-history 2>/dev/null)" ]; then
             cp -r /tmp/allure-history/* target/allure-results/history/
             echo "Restored $(ls -1 target/allure-results/history 2>/dev/null | wc -l) history files"
-          else
-            echo "No history to restore"
           fi
 
       # ─────────────────────────────────────────────

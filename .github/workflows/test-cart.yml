@@ -52,37 +52,31 @@ jobs:
           if [ -d gh-pages/history ]; then
             cp -r gh-pages/history/* /tmp/allure-history/
             echo "Backed up $(ls -1 /tmp/allure-history 2>/dev/null | wc -l) history files"
-          else
-            echo "No history found (first run or gh-pages branch doesn't exist)"
           fi
 
       # ─────────────────────────────────────────────
-      # Create Allure executor.json
-      # ─────────────────────────────────────────────
-      - name: Create Allure executor info
-        run: |
-          mkdir -p target/allure-results
-          cat <<EOFINNER > target/allure-results/executor.json
-          {
-            "name": "GitHub Actions",
-            "type": "github",
-            "buildName": "${{ github.workflow }}",
-            "buildUrl": "https://github.com/${{ github.repository }}/actions/runs/${{ github.run_id }}",
-            "buildOrder": "${{ github.run_number }}",
-            "reportUrl": "https://${{ github.repository_owner }}.github.io/${{ github.event.repository.name }}/"
-          }
-          EOFINNER
-
-      # ─────────────────────────────────────────────
-      # Create Allure environment.properties
+      # Create Allure environment info
       # ─────────────────────────────────────────────
       - name: Create Allure environment info
         run: |
-          cat <<EOFINNER > target/allure-results/environment.properties
+          mkdir -p target/allure-results
+          cat > target/allure-results/environment.properties << EOFINNER
           Browser=${{ github.event.inputs.browser || 'chrome' }}
+          Browser.Version=stable
+          Profile=default
           Environment=CI
+          Platform=ubuntu-latest
+          Java.Version=17
+          Maven.Version=3.8+
+          Framework=JUnit 5
+          Test.Suite=Cart
+          Test.Groups=cart
           Workflow=${{ github.workflow }}
-          Test Suite=Cart Operations
+          Run.Number=${{ github.run_number }}
+          Triggered.By=${{ github.actor }}
+          Branch=${{ github.ref_name }}
+          Commit=${{ github.sha }}
+          Repository=${{ github.repository }}
           EOFINNER
 
       # ─────────────────────────────────────────────
@@ -93,6 +87,9 @@ jobs:
           SAUCEDEMO_BASE_URL: ${{ secrets.SAUCEDEMO_BASE_URL }}
           USER_STANDARD_USERNAME: ${{ secrets.USER_STANDARD_USERNAME }}
           USER_STANDARD_PASSWORD: ${{ secrets.USER_STANDARD_PASSWORD }}
+          CHECKOUT_FIRSTNAME: ${{ secrets.CHECKOUT_FIRSTNAME }}
+          CHECKOUT_LASTNAME: ${{ secrets.CHECKOUT_LASTNAME }}
+          CHECKOUT_ZIPCODE: ${{ secrets.CHECKOUT_ZIPCODE }}
         run: |
           mvn clean test \
             -Denv=ci \
@@ -101,18 +98,26 @@ jobs:
             -Dgroups=cart \
             -Dallure.results.directory=target/allure-results
 
-      # ─────────────────────────────────────────────
-      # Restore Allure history before report generation
-      # ─────────────────────────────────────────────
+      - name: Create Allure executor info
+        if: always()
+        run: |
+          cat > target/allure-results/executor.json << EOFINNER
+          {
+            "name": "GitHub Actions",
+            "type": "github",
+            "buildName": "${{ github.workflow }} #${{ github.run_number }}",
+            "buildUrl": "https://github.com/${{ github.repository }}/actions/runs/${{ github.run_id }}",
+            "buildOrder": ${{ github.run_number }},
+            "reportUrl": "https://${{ github.repository_owner }}.github.io/${{ github.event.repository.name }}/"
+          }
+          EOFINNER
+
       - name: Restore Allure history
         if: always()
         run: |
           mkdir -p target/allure-results/history
           if [ -d /tmp/allure-history ] && [ "$(ls -A /tmp/allure-history 2>/dev/null)" ]; then
             cp -r /tmp/allure-history/* target/allure-results/history/
-            echo "Restored $(ls -1 target/allure-results/history 2>/dev/null | wc -l) history files"
-          else
-            echo "No history to restore"
           fi
 
       # ─────────────────────────────────────────────
@@ -139,10 +144,7 @@ jobs:
         if: always()
         run: |
           echo "━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━"
-          echo "   Allure Report Deployment"
-          echo "━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━"
-          echo ""
-          echo "   Report URL:"
+          echo "   Allure Report URL:"
           echo "   https://${{ github.repository_owner }}.github.io/${{ github.event.repository.name }}/"
           echo ""
           echo "   Note: GitHub Pages deployment may take 5-10 minutes"
