@@ -68,12 +68,12 @@ jobs:
           fi
 
       # ─────────────────────────────────────────────
-      # Create Allure environment info
+      # Create Allure environment.properties in TEMP
       # ─────────────────────────────────────────────
-      - name: Create Allure executor info
+      - name: Create Allure environment info in temp
         run: |
-          mkdir -p target/allure-results
-          cat > target/allure-results/environment.properties << EOFINNER
+          mkdir -p /tmp/allure-env
+          cat > /tmp/allure-env/environment.properties << EOF
           Browser=${{ github.event.inputs.browser || 'chrome' }}
           Browser.Version=stable
           Threads=${{ github.event.inputs.thread_count || '4' }}
@@ -89,11 +89,21 @@ jobs:
           Branch=${{ github.ref_name }}
           Commit=${{ github.sha }}
           Repository=${{ github.repository }}
-          EOFINNER
-          echo "Created environment.properties"
+          EOF
+          echo "Created environment.properties in /tmp/allure-env"
+          cat /tmp/allure-env/environment.properties
 
       # ─────────────────────────────────────────────
-      # Run UI tests (JUnit)
+      # Copy environment.properties BEFORE clean
+      # ─────────────────────────────────────────────
+      - name: Prepare Allure results directory
+        run: |
+          mkdir -p target/allure-results
+          cp /tmp/allure-env/environment.properties target/allure-results/
+          echo "Copied environment.properties to target/allure-results"
+
+      # ─────────────────────────────────────────────
+      # Run UI tests (JUnit) - clean will delete target/
       # ─────────────────────────────────────────────
       - name: Run UI tests
         env:
@@ -113,10 +123,26 @@ jobs:
             -Dthread.count=${{ github.event.inputs.thread_count || '4' }} \
             -Dallure.results.directory=target/allure-results
 
+      # ─────────────────────────────────────────────
+      # Restore environment.properties AFTER clean
+      # ─────────────────────────────────────────────
+      - name: Restore environment.properties after clean
+        if: always()
+        run: |
+          if [ ! -f target/allure-results/environment.properties ]; then
+            cp /tmp/allure-env/environment.properties target/allure-results/
+            echo "Restored environment.properties after mvn clean"
+          else
+            echo "environment.properties already exists"
+          fi
+
+      # ─────────────────────────────────────────────
+      # Create Allure executor.json AFTER tests
+      # ─────────────────────────────────────────────
       - name: Create Allure executor info
         if: always()
         run: |
-          cat > target/allure-results/executor.json << EOFINNER
+          cat > target/allure-results/executor.json << EOF
           {
             "name": "GitHub Actions",
             "type": "github",
@@ -125,8 +151,11 @@ jobs:
             "buildOrder": ${{ github.run_number }},
             "reportUrl": "https://${{ github.repository_owner }}.github.io/${{ github.event.repository.name }}/"
           }
-          EOFINNER
+          EOF
 
+      # ─────────────────────────────────────────────
+      # Restore Allure history before report generation
+      # ─────────────────────────────────────────────
       - name: Restore Allure history
         if: always()
         run: |
@@ -134,6 +163,22 @@ jobs:
           if [ -d /tmp/allure-history ] && [ "$(ls -A /tmp/allure-history 2>/dev/null)" ]; then
             cp -r /tmp/allure-history/* target/allure-results/history/
             echo "Restored $(ls -1 target/allure-results/history 2>/dev/null | wc -l) history files"
+          else
+            echo "No history to restore"
+          fi
+
+      # ─────────────────────────────────────────────
+      # Verify environment.properties exists
+      # ─────────────────────────────────────────────
+      - name: Verify Allure files
+        if: always()
+        run: |
+          echo "Files in target/allure-results:"
+          ls -lah target/allure-results/ | grep -E "environment|executor" || echo "Missing files!"
+          if [ -f target/allure-results/environment.properties ]; then
+            echo ""
+            echo "environment.properties content:"
+            cat target/allure-results/environment.properties
           fi
 
       # ─────────────────────────────────────────────

@@ -59,11 +59,10 @@ jobs:
       # ─────────────────────────────────────────────
       - name: Create Allure environment info
         run: |
-          mkdir -p target/allure-results
-          cat > target/allure-results/environment.properties << EOFINNER
+          mkdir -p /tmp/allure-env
+          cat > /tmp/allure-env/environment.properties << EOFINNER
           Browser=${{ github.event.inputs.browser || 'chrome' }}
           Browser.Version=stable
-          Profile=default
           Environment=CI
           Platform=ubuntu-latest
           Java.Version=17
@@ -78,6 +77,7 @@ jobs:
           Commit=${{ github.sha }}
           Repository=${{ github.repository }}
           EOFINNER
+          echo "Created environment.properties"
 
       # ─────────────────────────────────────────────
       # Run Checkout tests (JUnit)
@@ -98,6 +98,13 @@ jobs:
             -Dgroups=checkout \
             -Dallure.results.directory=target/allure-results
 
+      - name: Restore environment.properties
+        if: always()
+        run: |
+          mkdir -p target/allure-results
+          cp /tmp/allure-env/environment.properties target/allure-results/
+          echo "Restored environment.properties"
+
       - name: Create Allure executor info
         if: always()
         run: |
@@ -116,13 +123,17 @@ jobs:
         if: always()
         run: |
           mkdir -p target/allure-results/history
-          if [ -d /tmp/allure-history ] && [ "$(ls -A /tmp/allure-history 2>/dev/null)" ]; then
-            cp -r /tmp/allure-history/* target/allure-results/history/
+          if [ -d /tmp/allure-history ]; then
+            cp -r /tmp/allure-history/* target/allure-results/history/ 2>/dev/null || true
           fi
 
-      # ─────────────────────────────────────────────
-      # Generate Allure report
-      # ─────────────────────────────────────────────
+      - name: Verify files
+        if: always()
+        run: |
+          echo "Files:"
+          ls -lah target/allure-results/ | grep -E "environment|executor"
+          cat target/allure-results/environment.properties
+
       - name: Generate Allure Report
         if: always()
         run: mvn allure:report
@@ -140,24 +151,7 @@ jobs:
           user_name: 'github-actions[bot]'
           user_email: 'github-actions[bot]@users.noreply.github.com'
 
-      - name: Report deployment info
-        if: always()
-        run: |
-          echo "━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━"
-          echo "   Allure Report URL:"
-          echo "   https://${{ github.repository_owner }}.github.io/${{ github.event.repository.name }}/"
-          echo ""
-          echo "   Note: GitHub Pages deployment may take 5-10 minutes"
-          echo ""
-          echo "   Check deployment status:"
-          echo "   https://github.com/${{ github.repository }}/deployments"
-          echo ""
-          echo "━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━"
-
-      # ─────────────────────────────────────────────
-      # Upload artifacts
-      # ─────────────────────────────────────────────
-      - name: Upload Allure Results
+      - name: Upload artifacts
         if: always()
         uses: actions/upload-artifact@v4
         with:
