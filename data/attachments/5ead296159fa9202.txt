@@ -1,0 +1,6 @@
+Element should be visible {.bm-menu}
+Element: '<div class="bm-menu" displayed:false></div>'
+Actual value: hidden
+Screenshot: file:/home/runner/work/qa-ui-framework/qa-ui-framework/target/screenshots/1770528307147.0.png
+Page source: file:/home/runner/work/qa-ui-framework/qa-ui-framework/target/screenshots/1770528307147.0.html
+Timeout: 10 s.
