@@ -21,8 +21,6 @@ import java.net.MalformedURLException;
 import java.net.URL;
 import java.time.Duration;
 import java.util.Map;
-import java.net.URL;
-import java.time.Duration;
 
 /**
  * Manages WebDriver instances for different browsers
@@ -67,11 +65,9 @@ public class DriverManager {
             } else {
                 webDriver = createLocalDriver(browser, headless);
             }
-            
-            // Configure timeouts
+
             webDriver.manage().timeouts()
-                    .pageLoadTimeout(Duration.ofMillis(config.pageLoadTimeout()))
-                    .implicitlyWait(Duration.ofMillis(config.implicitTimeout()));
+                    .pageLoadTimeout(Duration.ofMillis(config.pageLoadTimeout()));
             
             // Set window size
             webDriver.manage().window().setSize(

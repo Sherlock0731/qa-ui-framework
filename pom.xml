@@ -40,6 +40,7 @@
         <test.groups></test.groups>
         <browser>chrome</browser>
         <headless>false</headless>
+
         <retry.count>0</retry.count>
     </properties>
 
@@ -155,6 +156,10 @@
                     <groups>${test.groups}</groups>
                     <reportsDirectory>${project.build.directory}/surefire-reports</reportsDirectory>
                     <useFile>true</useFile>
+                    <!--
+                        Retry управляется через property retry.count (дефолт 0).
+                        Включить: -Dretry.count=2  или профиль -Pretry-enabled.
+                    -->
                     <rerunFailingTestsCount>${retry.count}</rerunFailingTestsCount>
                     <systemPropertyVariables>
                         <allure.results.directory>${project.build.directory}/allure-results</allure.results.directory>
@@ -246,6 +251,13 @@
         </profile>
 
         <profile>
+            <id>retry-enabled</id>
+            <properties>
+                <retry.count>2</retry.count>
+            </properties>
+        </profile>
+
+        <profile>
             <id>sequential</id>
             <build>
                 <plugins>
@@ -256,12 +268,9 @@
                         <configuration>
                             <parallel>none</parallel>
                             <threadCount>1</threadCount>
-                            <perCoreThreadCount>false</perCoreThreadCount>
                             <forkCount>1</forkCount>
                             <reuseForks>true</reuseForks>
                             <groups>${test.groups}</groups>
-                            <reportsDirectory>${project.build.directory}/surefire-reports</reportsDirectory>
-                            <useFile>true</useFile>
                             <rerunFailingTestsCount>${retry.count}</rerunFailingTestsCount>
                             <systemPropertyVariables>
                                 <allure.results.directory>${project.build.directory}/allure-results</allure.results.directory>
@@ -299,8 +308,6 @@
                             <perCoreThreadCount>false</perCoreThreadCount>
                             <useUnlimitedThreads>false</useUnlimitedThreads>
                             <groups>${test.groups}</groups>
-                            <reportsDirectory>${project.build.directory}/surefire-reports</reportsDirectory>
-                            <useFile>true</useFile>
                             <rerunFailingTestsCount>${retry.count}</rerunFailingTestsCount>
                             <systemPropertyVariables>
                                 <allure.results.directory>${project.build.directory}/allure-results</allure.results.directory>
@@ -343,8 +350,6 @@
                             <threadCount>1</threadCount>
                             <perCoreThreadCount>false</perCoreThreadCount>
                             <groups>${test.groups}</groups>
-                            <reportsDirectory>${project.build.directory}/surefire-reports</reportsDirectory>
-                            <useFile>true</useFile>
                             <rerunFailingTestsCount>${retry.count}</rerunFailingTestsCount>
                             <systemPropertyVariables>
                                 <allure.results.directory>${project.build.directory}/allure-results</allure.results.directory>
