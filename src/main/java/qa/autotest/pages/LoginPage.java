@@ -85,9 +85,14 @@ public class LoginPage {
     @Step("Attempt login with username: {username} (expecting error)")
     public LoginPage loginWithError(String username, String password) {
         log.info("Attempting login with username: {} (expecting error)", username);
+        // clear() before sendKeys — guards against stale input on retry or sequential calls
+        usernameInput.shouldBe(Condition.visible);
+        usernameInput.clear();
         usernameInput.sendKeys(username);
+        passwordInput.shouldBe(Condition.visible);
+        passwordInput.clear();
         passwordInput.sendKeys(password);
-        loginButton.click();
+        loginButton.shouldBe(Condition.enabled).click();
         errorMessage.shouldBe(Condition.visible);
         return this;
     }
@@ -101,6 +106,8 @@ public class LoginPage {
     @Step("Enter username: {username}")
     public LoginPage enterUsername(String username) {
         log.debug("Entering username: {}", username);
+        usernameInput.shouldBe(Condition.visible);
+        usernameInput.clear();
         usernameInput.sendKeys(username);
         return this;
     }
@@ -114,6 +121,8 @@ public class LoginPage {
     @Step("Enter password")
     public LoginPage enterPassword(String password) {
         log.debug("Entering password");
+        passwordInput.shouldBe(Condition.visible);
+        passwordInput.clear();
         passwordInput.sendKeys(password);
         return this;
     }
