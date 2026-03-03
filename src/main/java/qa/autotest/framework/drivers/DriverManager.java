@@ -1,6 +1,5 @@
 package qa.autotest.framework.drivers;
 
-import com.codeborne.selenide.Configuration;
 import com.codeborne.selenide.WebDriverRunner;
 import io.github.bonigarcia.wdm.WebDriverManager;
 import lombok.extern.slf4j.Slf4j;
@@ -23,76 +22,70 @@ import java.time.Duration;
 import java.util.Map;
 
 /**
- * Manages WebDriver instances for different browsers
- * Supports Chrome, Firefox, Safari, Edge, Opera
- * Thread-safe implementation for parallel execution
+ * Manages WebDriver instances for different browsers.
+ * Supports Chrome, Firefox, Safari, Edge.
+ * Thread-safe implementation via ThreadLocal for parallel execution.
+ *
+ * <p>Responsibility: WebDriver lifecycle only (create / store / quit).
+ * Selenide configuration (timeout, screenshots, reportsFolder) is intentionally
+ * NOT set here — it lives in BaseTest.setUp() via thread-local SelenideConfig,
+ * eliminating race conditions when tests run in parallel.
  */
 @Slf4j
 public class DriverManager {
-    
+
     private static final ThreadLocal<WebDriver> driver = new ThreadLocal<>();
-    
+
     private DriverManager() {
-        // Private constructor to prevent instantiation
+        // utility class
     }
-    
+
     /**
-     * Initializes WebDriver based on configuration
-     * 
-     * @param config Test configuration
+     * Creates and stores a WebDriver instance for the current thread.
+     * Selenide configuration must be applied separately (e.g. in BaseTest.setUp).
+     *
+     * @param config test configuration
      */
     public static void initDriver(TestConfig config) {
         String browser = config.browser().toLowerCase();
-        
+
         // Support both -Dheadless=true and -Dbrowser.headless=true
         boolean headless = false;
         if (config.headless() != null) {
-            headless = config.headless(); // Priority to short form
+            headless = config.headless();
         } else if (config.browserHeadless() != null) {
             headless = config.browserHeadless();
         }
-        
-        String remoteUrl = config.browserRemoteUrl();
-        
-        log.info("Initializing {} driver (headless: {}) on thread: {}", 
-                browser, headless, Thread.currentThread().getName());
-        
-        try {
-            WebDriver webDriver;
-            
-            if (remoteUrl != null && !remoteUrl.isEmpty()) {
-                webDriver = createRemoteDriver(browser, headless, remoteUrl);
-            } else {
-                webDriver = createLocalDriver(browser, headless);
-            }
 
+        String remoteUrl = config.browserRemoteUrl();
+
+        log.info("Initializing {} driver (headless: {}) on thread: {}",
+                browser, headless, Thread.currentThread().getName());
+
+        try {
+            WebDriver webDriver = (remoteUrl != null && !remoteUrl.isEmpty())
+                    ? createRemoteDriver(browser, headless, remoteUrl)
+                    : createLocalDriver(browser, headless);
+
+            // pageLoadTimeout only — implicitlyWait must stay 0 when using Selenide
             webDriver.manage().timeouts()
                     .pageLoadTimeout(Duration.ofMillis(config.pageLoadTimeout()));
-            
-            // Set window size
+
             webDriver.manage().window().setSize(
                     new org.openqa.selenium.Dimension(config.browserWidth(), config.browserHeight())
             );
-            
+
             driver.set(webDriver);
             WebDriverRunner.setWebDriver(webDriver);
-            
-            // Configure Selenide
-            Configuration.timeout = config.explicitTimeout();
-            Configuration.screenshots = config.screenshotOnFailure();
-            Configuration.reportsFolder = config.screenshotFolder();
-            
+
             log.info("Driver initialized successfully on thread: {}", Thread.currentThread().getName());
-            
+
         } catch (Exception e) {
             log.error("Failed to initialize driver: {}", e.getMessage(), e);
             throw new RuntimeException("Failed to initialize WebDriver", e);
         }
     }
-    
-    /**
-     * Creates local WebDriver instance
-     */
+
     private static WebDriver createLocalDriver(String browser, boolean headless) {
         return switch (browser) {
             case "chrome" -> createChromeDriver(headless);
@@ -105,15 +98,10 @@ public class DriverManager {
             }
         };
     }
-    
-    /**
-     * Creates remote WebDriver instance for Selenium Grid
-     */
-    private static WebDriver createRemoteDriver(String browser, boolean headless, String remoteUrl) 
+
+    private static WebDriver createRemoteDriver(String browser, boolean headless, String remoteUrl)
             throws MalformedURLException {
-        
         log.info("Creating remote driver for: {} at {}", browser, remoteUrl);
-        
         return switch (browser) {
             case "chrome" -> new RemoteWebDriver(new URL(remoteUrl), getChromeOptions(headless));
             case "firefox" -> new RemoteWebDriver(new URL(remoteUrl), getFirefoxOptions(headless));
@@ -122,10 +110,9 @@ public class DriverManager {
             default -> throw new IllegalArgumentException("Unsupported browser: " + browser);
         };
     }
-    
+
     private static WebDriver createChromeDriver(boolean headless) {
         TestConfig config = ConfigFactory.getConfig();
-        
         if (config.useLocalDrivers() && config.chromeDriverPath() != null) {
             log.info("Using local Chrome driver from: {}", config.chromeDriverPath());
             System.setProperty("webdriver.chrome.driver", config.chromeDriverPath());
@@ -133,47 +120,35 @@ public class DriverManager {
             log.info("Using WebDriverManager for Chrome");
             WebDriverManager.chromedriver().setup();
         }
-        
         return new ChromeDriver(getChromeOptions(headless));
     }
-    
+
     private static ChromeOptions getChromeOptions(boolean headless) {
         ChromeOptions options = new ChromeOptions();
-        
-        // Performance and stability
         options.addArguments("--disable-dev-shm-usage");
         options.addArguments("--no-sandbox");
         options.addArguments("--disable-gpu");
         options.addArguments("--disable-blink-features=AutomationControlled");
         options.addArguments("--incognito");
-
-        // Additional password manager safeguards (redundant with incognito but ensures compatibility)
         options.addArguments("--disable-save-password-bubble");
         options.addArguments("--disable-password-generation");
         options.addArguments("--disable-password-manager-reauthentication");
-
-        // Comprehensive preferences to disable password manager and autofill
         options.setExperimentalOption("prefs", Map.of(
-            "credentials_enable_service", false,
-            "profile.password_manager_enabled", false,
-            "profile.default_content_setting_values.notifications", 2,
-            "profile.default_content_settings.popups", 0,
-            "autofill.profile_enabled", false
+                "credentials_enable_service", false,
+                "profile.password_manager_enabled", false,
+                "profile.default_content_setting_values.notifications", 2,
+                "profile.default_content_settings.popups", 0,
+                "autofill.profile_enabled", false
         ));
-
-        // Exclude automation switches that might trigger credential prompts
         options.setExperimentalOption("excludeSwitches", new String[]{"enable-automation"});
-        
         if (headless) {
             options.addArguments("--headless=new");
         }
-        
         return options;
     }
-    
+
     private static WebDriver createFirefoxDriver(boolean headless) {
         TestConfig config = ConfigFactory.getConfig();
-        
         if (config.useLocalDrivers() && config.firefoxDriverPath() != null) {
             log.info("Using local Firefox driver from: {}", config.firefoxDriverPath());
             System.setProperty("webdriver.gecko.driver", config.firefoxDriverPath());
@@ -181,23 +156,19 @@ public class DriverManager {
             log.info("Using WebDriverManager for Firefox");
             WebDriverManager.firefoxdriver().setup();
         }
-        
         return new FirefoxDriver(getFirefoxOptions(headless));
     }
-    
+
     private static FirefoxOptions getFirefoxOptions(boolean headless) {
         FirefoxOptions options = new FirefoxOptions();
-        
         if (headless) {
             options.addArguments("-headless");
         }
-        
         return options;
     }
-    
+
     private static WebDriver createEdgeDriver(boolean headless) {
         TestConfig config = ConfigFactory.getConfig();
-        
         if (config.useLocalDrivers() && config.edgeDriverPath() != null) {
             log.info("Using local Edge driver from: {}", config.edgeDriverPath());
             System.setProperty("webdriver.edge.driver", config.edgeDriverPath());
@@ -205,37 +176,30 @@ public class DriverManager {
             log.info("Using WebDriverManager for Edge");
             WebDriverManager.edgedriver().setup();
         }
-        
         return new EdgeDriver(getEdgeOptions(headless));
     }
-    
+
     private static EdgeOptions getEdgeOptions(boolean headless) {
         EdgeOptions options = new EdgeOptions();
-        
         if (headless) {
             options.addArguments("--headless");
         }
-        
         return options;
     }
-    
+
     private static WebDriver createSafariDriver() {
-        // Safari doesn't support headless mode natively
-        // WebDriverManager not needed for Safari on macOS
         return new SafariDriver(new SafariOptions());
     }
-    
+
     /**
-     * Gets current WebDriver instance
-     * 
-     * @return WebDriver instance for current thread
+     * Returns the WebDriver bound to the current thread.
      */
     public static WebDriver getDriver() {
         return driver.get();
     }
-    
+
     /**
-     * Quits and removes WebDriver instance for current thread
+     * Quits and unbinds the WebDriver for the current thread.
      */
     public static void quitDriver() {
         WebDriver currentDriver = driver.get();
