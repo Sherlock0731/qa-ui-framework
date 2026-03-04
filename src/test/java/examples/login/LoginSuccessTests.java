@@ -25,16 +25,16 @@ public class LoginSuccessTests extends BaseTest {
     @Story("Login - Success")
     void testSuccessfulLoginWithStandardUser() {
         UserDto user = UserDto.builder()
-                .username(CONFIG.standardUsername())
-                .password(CONFIG.standardPassword())
+                .username(config.standardUsername())
+                .password(config.standardPassword())
                 .build();
         
         InventoryPage inventoryPage = loginPage
-                .openPage(CONFIG.sauceDemoBaseUrl())
+                .openPage(config.sauceDemoBaseUrl())
                 .login(user)
                 .waitForPageLoad();
         
-        webdriver().shouldHave(url(CONFIG.sauceDemoBaseUrl() + "/inventory.html"));
+        webdriver().shouldHave(url(config.sauceDemoBaseUrl() + "/inventory.html"));
         
         int productsCount = inventoryPage.getProductsCount();
         assertThat(productsCount)

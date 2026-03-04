@@ -20,8 +20,8 @@ public class InventoryDisplayTests extends BaseTest {
     @BeforeEach
     void loginAndNavigate() {
         inventoryPage = loginPage
-                .openPage(CONFIG.sauceDemoBaseUrl())
-                .login(CONFIG.standardUsername(), CONFIG.standardPassword())
+                .openPage(config.sauceDemoBaseUrl())
+                .login(config.standardUsername(), config.standardPassword())
                 .waitForPageLoad();
     }
 

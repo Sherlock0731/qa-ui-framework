@@ -19,8 +19,8 @@ public class LoginFailureTests extends BaseTest {
     @Story("Login - Failure")
     void testLoginWithInvalidUsername() {
         loginPage
-                .openPage(CONFIG.sauceDemoBaseUrl())
-                .loginWithError("invalid_user", CONFIG.standardPassword());
+                .openPage(config.sauceDemoBaseUrl())
+                .loginWithError("invalid_user", config.standardPassword());
         
         String errorMessage = loginPage.getErrorMessage();
         assertThat(errorMessage)
@@ -34,8 +34,8 @@ public class LoginFailureTests extends BaseTest {
     @Story("Login - Failure")
     void testLoginWithInvalidPassword() {
         loginPage
-                .openPage(CONFIG.sauceDemoBaseUrl())
-                .loginWithError(CONFIG.standardUsername(), "wrong_password");
+                .openPage(config.sauceDemoBaseUrl())
+                .loginWithError(config.standardUsername(), "wrong_password");
         
         assertThat(loginPage.isErrorMessageDisplayed())
                 .as("Error message should be displayed")
@@ -48,7 +48,7 @@ public class LoginFailureTests extends BaseTest {
     @Story("Login - Validation")
     void testLoginWithEmptyFields() {
         loginPage
-                .openPage(CONFIG.sauceDemoBaseUrl())
+                .openPage(config.sauceDemoBaseUrl())
                 .clickLoginButton();
         
         String errorMessage = loginPage.getErrorMessage();
@@ -63,8 +63,8 @@ public class LoginFailureTests extends BaseTest {
     @Story("Login - Failure")
     void testLoginWithLockedUser() {
         loginPage
-                .openPage(CONFIG.sauceDemoBaseUrl())
-                .loginWithError(CONFIG.lockedUsername(), CONFIG.lockedPassword());
+                .openPage(config.sauceDemoBaseUrl())
+                .loginWithError(config.lockedUsername(), config.lockedPassword());
         String errorMessage = loginPage.getErrorMessage();
         assertThat(errorMessage)
                 .as("Error message should indicate user is locked out")

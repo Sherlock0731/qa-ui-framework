@@ -22,8 +22,8 @@ public class CheckoutFlowTests extends BaseTest {
     @BeforeEach
     void loginAndNavigate() {
         inventoryPage = loginPage
-                .openPage(CONFIG.sauceDemoBaseUrl())
-                .login(CONFIG.standardUsername(), CONFIG.standardPassword())
+                .openPage(config.sauceDemoBaseUrl())
+                .login(config.standardUsername(), config.standardPassword())
                 .waitForPageLoad();
     }
 
@@ -33,9 +33,9 @@ public class CheckoutFlowTests extends BaseTest {
     @Story("Checkout Flow")
     void testCheckoutWithValidInformation() {
         CheckoutDto checkoutInfo = CheckoutDto.builder()
-                .firstName(CONFIG.checkoutFirstName())
-                .lastName(CONFIG.checkoutLastName())
-                .zipCode(CONFIG.checkoutZipCode())
+                .firstName(config.checkoutFirstName())
+                .lastName(config.checkoutLastName())
+                .zipCode(config.checkoutZipCode())
                 .build();
         
         inventoryPage.addProductToCartByIndex(0);
@@ -125,7 +125,7 @@ public class CheckoutFlowTests extends BaseTest {
         CheckoutStepTwoPage overviewPage = inventoryPage
                 .openCart()
                 .proceedToCheckout()
-                .fillCheckoutInfo(CONFIG.checkoutFirstName(), CONFIG.checkoutLastName(), CONFIG.checkoutZipCode())
+                .fillCheckoutInfo(config.checkoutFirstName(), config.checkoutLastName(), config.checkoutZipCode())
                 .clickContinue()
                 .waitForPageLoad();
         
@@ -148,7 +148,7 @@ public class CheckoutFlowTests extends BaseTest {
         CheckoutCompletePage completePage = inventoryPage
                 .openCart()
                 .proceedToCheckout()
-                .fillCheckoutInfo(CONFIG.checkoutFirstName(), CONFIG.checkoutLastName(), CONFIG.checkoutZipCode())
+                .fillCheckoutInfo(config.checkoutFirstName(), config.checkoutLastName(), config.checkoutZipCode())
                 .clickContinue()
                 .clickFinish()
                 .waitForPageLoad();
@@ -191,7 +191,7 @@ public class CheckoutFlowTests extends BaseTest {
         CheckoutStepTwoPage overviewPage = inventoryPage
                 .openCart()
                 .proceedToCheckout()
-                .fillCheckoutInfo(CONFIG.checkoutFirstName(), CONFIG.checkoutLastName(), CONFIG.checkoutZipCode())
+                .fillCheckoutInfo(config.checkoutFirstName(), config.checkoutLastName(), config.checkoutZipCode())
                 .clickContinue()
                 .waitForPageLoad();
         

@@ -23,8 +23,8 @@ public class NavigationTests extends BaseTest {
     @BeforeEach
     void loginAndNavigate() {
         inventoryPage = loginPage
-                .openPage(CONFIG.sauceDemoBaseUrl())
-                .login(CONFIG.standardUsername(), CONFIG.standardPassword())
+                .openPage(config.sauceDemoBaseUrl())
+                .login(config.standardUsername(), config.standardPassword())
                 .waitForPageLoad();
     }
 
@@ -57,7 +57,7 @@ public class NavigationTests extends BaseTest {
     void testLogoutThroughBurgerMenu() {
         LoginPage loginPageAfterLogout = inventoryPage.logout();
         
-        webdriver().shouldHave(url(CONFIG.sauceDemoBaseUrl() + "/"));
+        webdriver().shouldHave(url(config.sauceDemoBaseUrl() + "/"));
         
         assertThat(loginPageAfterLogout.isUsernameEmpty())
                 .as("Username field should be empty after logout")
