@@ -2,7 +2,7 @@ package examples;
 
 import com.codeborne.selenide.Configuration;
 import com.codeborne.selenide.logevents.SelenideLogger;
-import examples.listeners.AllureSelenideListener;
+import qa.autotest.framework.listeners.AllureSelenideListener;
 import lombok.extern.slf4j.Slf4j;
 import org.junit.jupiter.api.AfterEach;
 import org.junit.jupiter.api.BeforeAll;

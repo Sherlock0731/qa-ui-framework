@@ -49,13 +49,9 @@ public class DriverManager {
     public static void initDriver(TestConfig config) {
         String browser = config.browser().toLowerCase();
 
-        // Support both -Dheadless=true and -Dbrowser.headless=true
-        boolean headless = false;
-        if (config.headless() != null) {
-            headless = config.headless();
-        } else if (config.browserHeadless() != null) {
-            headless = config.browserHeadless();
-        }
+        // Single canonical key: browser.headless (set via -Dbrowser.headless=true or env BROWSER_HEADLESS).
+        // Owner's MERGE policy already handles priority — no manual fallback needed here.
+        boolean headless = config.browserHeadless();
 
         String remoteUrl = config.browserRemoteUrl();
 
@@ -88,10 +84,10 @@ public class DriverManager {
 
     private static WebDriver createLocalDriver(String browser, boolean headless) {
         return switch (browser) {
-            case "chrome" -> createChromeDriver(headless);
+            case "chrome"  -> createChromeDriver(headless);
             case "firefox" -> createFirefoxDriver(headless);
-            case "edge" -> createEdgeDriver(headless);
-            case "safari" -> createSafariDriver();
+            case "edge"    -> createEdgeDriver(headless);
+            case "safari"  -> createSafariDriver();
             default -> {
                 log.warn("Unknown browser: {}. Using Chrome as default", browser);
                 yield createChromeDriver(headless);
@@ -103,10 +99,10 @@ public class DriverManager {
             throws MalformedURLException {
         log.info("Creating remote driver for: {} at {}", browser, remoteUrl);
         return switch (browser) {
-            case "chrome" -> new RemoteWebDriver(new URL(remoteUrl), getChromeOptions(headless));
+            case "chrome"  -> new RemoteWebDriver(new URL(remoteUrl), getChromeOptions(headless));
             case "firefox" -> new RemoteWebDriver(new URL(remoteUrl), getFirefoxOptions(headless));
-            case "edge" -> new RemoteWebDriver(new URL(remoteUrl), getEdgeOptions(headless));
-            case "safari" -> new RemoteWebDriver(new URL(remoteUrl), new SafariOptions());
+            case "edge"    -> new RemoteWebDriver(new URL(remoteUrl), getEdgeOptions(headless));
+            case "safari"  -> new RemoteWebDriver(new URL(remoteUrl), new SafariOptions());
             default -> throw new IllegalArgumentException("Unsupported browser: " + browser);
         };
     }

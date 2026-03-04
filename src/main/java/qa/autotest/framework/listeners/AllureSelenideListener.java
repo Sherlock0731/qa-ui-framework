@@ -1,4 +1,4 @@
-package examples.listeners;
+package qa.autotest.framework.listeners;
 
 import com.codeborne.selenide.logevents.LogEvent;
 import com.codeborne.selenide.logevents.LogEventListener;
