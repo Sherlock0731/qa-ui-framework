@@ -1,4 +1,4 @@
-package qa.autotest.app.dto;
+package qa.autotest.domain.enums;
 
 import lombok.Getter;
 

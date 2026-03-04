@@ -1,4 +1,4 @@
-package qa.autotest.app.dto;
+package qa.autotest.domain.dto;
 
 import lombok.AllArgsConstructor;
 import lombok.Builder;
@@ -6,16 +6,14 @@ import lombok.Data;
 import lombok.NoArgsConstructor;
 
 /**
- * Data Transfer Object for User credentials
+ * Data Transfer Object for Checkout information
  */
 @Data
 @Builder
 @NoArgsConstructor
 @AllArgsConstructor
-public class UserDto {
+public class CheckoutDto {
     
-    private String username;
-    private String password;
     private String firstName;
     private String lastName;
     private String zipCode;

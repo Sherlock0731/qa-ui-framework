@@ -1,12 +1,12 @@
-package examples.inventory;
+package qa.autotest.tests.inventory;
 
-import examples.BaseTest;
+import qa.autotest.tests.BaseTest;
 import io.qameta.allure.*;
 import org.junit.jupiter.api.BeforeEach;
 import org.junit.jupiter.api.DisplayName;
 import org.junit.jupiter.api.Tag;
 import org.junit.jupiter.api.Test;
-import qa.autotest.pages.InventoryPage;
+import qa.autotest.framework.pages.InventoryPage;
 
 import static org.assertj.core.api.Assertions.assertThat;
 

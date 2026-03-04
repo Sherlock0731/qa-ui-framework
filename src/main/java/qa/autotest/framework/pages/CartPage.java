@@ -1,11 +1,10 @@
-package qa.autotest.pages;
+package qa.autotest.framework.pages;
 
-import com.codeborne.selenide.CollectionCondition;
 import com.codeborne.selenide.ElementsCollection;
 import com.codeborne.selenide.SelenideElement;
 import io.qameta.allure.Step;
 import lombok.extern.slf4j.Slf4j;
-import qa.autotest.app.dto.ProductDto;
+import qa.autotest.domain.dto.ProductDto;
 
 import java.util.ArrayList;
 import java.util.List;

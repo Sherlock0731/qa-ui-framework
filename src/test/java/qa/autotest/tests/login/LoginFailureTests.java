@@ -1,6 +1,6 @@
-package examples.login;
+package qa.autotest.tests.login;
 
-import examples.BaseTest;
+import qa.autotest.tests.BaseTest;
 import io.qameta.allure.*;
 import org.junit.jupiter.api.DisplayName;
 import org.junit.jupiter.api.Tag;

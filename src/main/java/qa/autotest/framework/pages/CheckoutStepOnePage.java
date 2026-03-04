@@ -1,12 +1,10 @@
-package qa.autotest.pages;
+package qa.autotest.framework.pages;
 
 import com.codeborne.selenide.Condition;
 import com.codeborne.selenide.SelenideElement;
 import io.qameta.allure.Step;
 import lombok.extern.slf4j.Slf4j;
-import qa.autotest.app.dto.CheckoutDto;
-
-import java.time.Duration;
+import qa.autotest.domain.dto.CheckoutDto;
 
 import static com.codeborne.selenide.Selenide.$;
 

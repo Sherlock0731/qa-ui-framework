@@ -1,13 +1,13 @@
-package examples.checkout;
+package qa.autotest.tests.checkout;
 
-import examples.BaseTest;
+import qa.autotest.tests.BaseTest;
 import io.qameta.allure.*;
 import org.junit.jupiter.api.BeforeEach;
 import org.junit.jupiter.api.DisplayName;
 import org.junit.jupiter.api.Tag;
 import org.junit.jupiter.api.Test;
-import qa.autotest.app.dto.CheckoutDto;
-import qa.autotest.pages.*;
+import qa.autotest.domain.dto.CheckoutDto;
+import qa.autotest.framework.pages.*;
 
 import static org.assertj.core.api.Assertions.assertThat;
 

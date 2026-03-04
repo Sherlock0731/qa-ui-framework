@@ -1,4 +1,4 @@
-package examples;
+package qa.autotest.tests;
 
 import com.codeborne.selenide.Configuration;
 import com.codeborne.selenide.WebDriverRunner;
@@ -13,7 +13,7 @@ import org.junit.jupiter.api.parallel.ExecutionMode;
 import qa.autotest.framework.config.ConfigFactory;
 import qa.autotest.framework.config.TestConfig;
 import qa.autotest.framework.drivers.DriverManager;
-import qa.autotest.pages.LoginPage;
+import qa.autotest.framework.pages.LoginPage;
 
 /**
  * Base test class with common setup and teardown.

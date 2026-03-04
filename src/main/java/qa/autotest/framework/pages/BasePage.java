@@ -1,4 +1,4 @@
-package qa.autotest.pages;
+package qa.autotest.framework.pages;
 
 import com.codeborne.selenide.Condition;
 import com.codeborne.selenide.SelenideElement;

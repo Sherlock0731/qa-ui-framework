@@ -1,4 +1,4 @@
-package qa.autotest.pages;
+package qa.autotest.framework.pages;
 
 import com.codeborne.selenide.Condition;
 import com.codeborne.selenide.ElementsCollection;
@@ -7,7 +7,6 @@ import io.qameta.allure.Step;
 import lombok.extern.slf4j.Slf4j;
 
 import java.time.Duration;
-import java.util.List;
 
 import static com.codeborne.selenide.Selenide.$;
 import static com.codeborne.selenide.Selenide.$$;

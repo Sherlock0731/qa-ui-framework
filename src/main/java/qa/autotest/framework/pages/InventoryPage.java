@@ -1,4 +1,4 @@
-package qa.autotest.pages;
+package qa.autotest.framework.pages;
 
 import com.codeborne.selenide.CollectionCondition;
 import com.codeborne.selenide.Condition;
@@ -8,8 +8,8 @@ import com.codeborne.selenide.SelenideElement;
 import com.codeborne.selenide.WebDriverConditions;
 import io.qameta.allure.Step;
 import lombok.extern.slf4j.Slf4j;
-import qa.autotest.app.dto.ProductDto;
-import qa.autotest.app.dto.SauceDemoProduct;
+import qa.autotest.domain.dto.ProductDto;
+import qa.autotest.domain.enums.SauceDemoProduct;
 
 import java.time.Duration;
 import java.util.ArrayList;
