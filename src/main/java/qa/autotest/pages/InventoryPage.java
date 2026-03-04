@@ -9,6 +9,7 @@ import com.codeborne.selenide.WebDriverConditions;
 import io.qameta.allure.Step;
 import lombok.extern.slf4j.Slf4j;
 import qa.autotest.app.dto.ProductDto;
+import qa.autotest.app.dto.SauceDemoProduct;
 
 import java.time.Duration;
 import java.util.ArrayList;
@@ -162,14 +163,19 @@ public class InventoryPage extends BasePage {
      * @param productName Product name
      * @return Current InventoryPage instance
      */
-    @Step("Add product to cart: {productName}")
-    public InventoryPage addProductToCartByName(String productName) {
-        log.info("Adding product to cart: {}", productName);
-        String buttonId = productName.toLowerCase()
-                .replace(" ", "-")
-                .replace("(", "")
-                .replace(")", "");
-        $("[data-test='add-to-cart-" + buttonId + "']").click();
+    /**
+     * Adds a product to the cart by its canonical {@link SauceDemoProduct} constant.
+     *
+     * <p>Uses the pre-verified {@code buttonId} from the enum — no runtime string
+     * transformation.  Rename the {@code buttonId} in the enum when the AUT changes.
+     *
+     * @param product canonical product constant
+     * @return current InventoryPage instance
+     */
+    @Step("Add product to cart: {product}")
+    public InventoryPage addProductToCartByName(SauceDemoProduct product) {
+        log.info("Adding product to cart: {}", product.getDisplayName());
+        $("[data-test='add-to-cart-" + product.getButtonId() + "']").click();
         return this;
     }
     
@@ -192,14 +198,16 @@ public class InventoryPage extends BasePage {
      * @param productName Product name
      * @return Current InventoryPage instance
      */
-    @Step("Remove product from cart: {productName}")
-    public InventoryPage removeProductFromCartByName(String productName) {
-        log.info("Removing product from cart: {}", productName);
-        String buttonId = productName.toLowerCase()
-                .replace(" ", "-")
-                .replace("(", "")
-                .replace(")", "");
-        $("[data-test='remove-" + buttonId + "']").click();
+    /**
+     * Removes a product from the cart by its canonical {@link SauceDemoProduct} constant.
+     *
+     * @param product canonical product constant
+     * @return current InventoryPage instance
+     */
+    @Step("Remove product from cart: {product}")
+    public InventoryPage removeProductFromCartByName(SauceDemoProduct product) {
+        log.info("Removing product from cart: {}", product.getDisplayName());
+        $("[data-test='remove-" + product.getButtonId() + "']").click();
         return this;
     }
     
