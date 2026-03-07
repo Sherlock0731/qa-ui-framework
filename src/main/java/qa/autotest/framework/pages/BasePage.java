@@ -5,7 +5,6 @@ import com.codeborne.selenide.SelenideElement;
 import io.qameta.allure.Step;
 import lombok.extern.slf4j.Slf4j;
 
-import java.time.Duration;
 
 import static com.codeborne.selenide.Selenide.$;
 
@@ -95,7 +94,10 @@ public abstract class BasePage {
     /**
      * Closes the burger menu.
      *
-     * <p>Precondition: the menu must be open.  If it is not, Selenide will throw
+     * <p>Precondition: the menu must be open. Uses global {@code Configuration.timeout}
+     * (default: 10 s) — tolerates slow CSS animations in headless CI.
+     *
+     * <p>If it is not open, Selenide will throw
      * a timeout exception — this is intentional (fail-fast on wrong test state).
      *
      * @return current page instance
@@ -103,8 +105,8 @@ public abstract class BasePage {
     @Step("Close burger menu")
     public BasePage closeBurgerMenu() {
         log.info("Closing burger menu");
-        closeMenuButton().click();
-        sidebarMenu().shouldNotBe(Condition.visible, Duration.ofSeconds(3));
+        closeMenuButton().shouldBe(Condition.visible).click();
+        sidebarMenu().shouldNotBe(Condition.visible);
         return this;
     }
 
