@@ -1,9 +1,0 @@
-Element should not be visible {.bm-menu}
-Element: '<div class="bm-menu">All Items
-About
-Logout
-Reset App State</div>'
-Actual value: visible
-Screenshot: file:/home/runner/work/qa-ui-framework/qa-ui-framework/target/screenshots/1772859723854.0.png
-Page source: file:/home/runner/work/qa-ui-framework/qa-ui-framework/target/screenshots/1772859723854.0.html
-Timeout: 3 s.
