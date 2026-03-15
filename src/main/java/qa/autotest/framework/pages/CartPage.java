@@ -5,6 +5,7 @@ import com.codeborne.selenide.SelenideElement;
 import io.qameta.allure.Step;
 import lombok.extern.slf4j.Slf4j;
 import qa.autotest.domain.dto.ProductDto;
+import qa.autotest.framework.utils.PriceParser;
 
 import java.util.ArrayList;
 import java.util.List;
@@ -95,8 +96,7 @@ public class CartPage extends BasePage {
     public List<Double> getCartItemPrices() {
         List<Double> prices = new ArrayList<>();
         for (String priceText : cartItemPrices.texts()) {
-            Double price = Double.parseDouble(priceText.replace("$", ""));
-            prices.add(price);
+            prices.add(PriceParser.parse(priceText));
         }
         log.info("Cart item prices: {}", prices);
         return prices;
@@ -184,7 +184,7 @@ public class CartPage extends BasePage {
         String name = item.$(".inventory_item_name").getText();
         String description = item.$(".inventory_item_desc").getText();
         String priceText = item.$(".inventory_item_price").getText();
-        Double price = Double.parseDouble(priceText.replace("$", ""));
+        double price = PriceParser.parse(priceText);
         
         return ProductDto.builder()
                 .name(name)

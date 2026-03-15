@@ -10,6 +10,7 @@ import io.qameta.allure.Step;
 import lombok.extern.slf4j.Slf4j;
 import qa.autotest.domain.dto.ProductDto;
 import qa.autotest.domain.enums.SauceDemoProduct;
+import qa.autotest.framework.utils.PriceParser;
 
 import java.time.Duration;
 import java.util.ArrayList;
@@ -136,9 +137,7 @@ public class InventoryPage extends BasePage {
     public List<Double> getProductPrices() {
         List<Double> prices = new ArrayList<>();
         for (String priceText : productPrices.texts()) {
-            // Remove $ sign and convert to Double
-            Double price = Double.parseDouble(priceText.replace("$", ""));
-            prices.add(price);
+            prices.add(PriceParser.parse(priceText));
         }
         log.info("Product prices: {}", prices);
         return prices;
@@ -237,7 +236,7 @@ public class InventoryPage extends BasePage {
         String name = item.$(".inventory_item_name").getText();
         String description = item.$(".inventory_item_desc").getText();
         String priceText = item.$(".inventory_item_price").getText();
-        Double price = Double.parseDouble(priceText.replace("$", ""));
+        double price = PriceParser.parse(priceText);
         String imageSrc = item.$(".inventory_item_img img").getAttribute("src");
         
         return ProductDto.builder()

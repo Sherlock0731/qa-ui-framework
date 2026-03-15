@@ -5,6 +5,7 @@ import com.codeborne.selenide.ElementsCollection;
 import com.codeborne.selenide.SelenideElement;
 import io.qameta.allure.Step;
 import lombok.extern.slf4j.Slf4j;
+import qa.autotest.framework.utils.PriceParser;
 
 import java.time.Duration;
 
@@ -29,30 +30,27 @@ public class CheckoutStepTwoPage extends BasePage {
     }
     
     @Step("Get item total")
-    public Double getItemTotal() {
-        String totalText = itemTotal.getText().replace("Item total: $", "");
-        Double value = Double.parseDouble(totalText);
+    public double getItemTotal() {
+        double value = PriceParser.parseLabelled(itemTotal.getText());
         log.info("Item total: ${}", value);
         return value;
     }
-    
+
     @Step("Get subtotal")
-    public Double getSubtotal() {
+    public double getSubtotal() {
         return getItemTotal();
     }
-    
+
     @Step("Get tax")
-    public Double getTax() {
-        String taxText = tax.getText().replace("Tax: $", "");
-        Double value = Double.parseDouble(taxText);
+    public double getTax() {
+        double value = PriceParser.parseLabelled(tax.getText());
         log.info("Tax: ${}", value);
         return value;
     }
-    
+
     @Step("Get total")
-    public Double getTotal() {
-        String totalText = total.getText().replace("Total: $", "");
-        Double value = Double.parseDouble(totalText);
+    public double getTotal() {
+        double value = PriceParser.parseLabelled(total.getText());
         log.info("Total: ${}", value);
         return value;
     }

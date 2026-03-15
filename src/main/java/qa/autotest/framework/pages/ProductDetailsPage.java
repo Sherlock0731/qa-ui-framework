@@ -5,6 +5,7 @@ import com.codeborne.selenide.SelenideElement;
 import io.qameta.allure.Step;
 import lombok.extern.slf4j.Slf4j;
 import qa.autotest.domain.dto.ProductDto;
+import qa.autotest.framework.utils.PriceParser;
 
 import static com.codeborne.selenide.Selenide.$;
 
@@ -37,9 +38,8 @@ public class ProductDetailsPage extends BasePage {
     }
     
     @Step("Get product price")
-    public Double getProductPrice() {
-        String priceText = productPrice.getText();
-        return Double.parseDouble(priceText.replace("$", ""));
+    public double getProductPrice() {
+        return PriceParser.parse(productPrice.getText());
     }
     
     @Step("Add product to cart")
