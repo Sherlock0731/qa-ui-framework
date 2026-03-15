@@ -1,5 +1,6 @@
 package qa.autotest.tests.cart;
 
+import qa.autotest.framework.assertions.CartAssert;
 import qa.autotest.tests.BaseTest;
 import io.qameta.allure.*;
 import org.junit.jupiter.api.BeforeEach;
@@ -94,9 +95,7 @@ public class CartOperationsTests extends BaseTest {
 
         CartPage cartPage = cartSteps.openCart(inventoryPage);
 
-        assertThat(cartPage.isPageLoaded())
-                .as("Cart page should be loaded")
-                .isTrue();
+        CartAssert.assertThat(cartPage).isLoaded();
     }
 
     @Test
@@ -108,9 +107,9 @@ public class CartOperationsTests extends BaseTest {
                 SauceDemoProduct.BACKPACK,
                 SauceDemoProduct.BIKE_LIGHT);
 
-        assertThat(cartPage.getCartItemsCount())
-                .as("Cart should contain 2 items")
-                .isEqualTo(2);
+        CartAssert.assertThat(cartPage)
+                .isLoaded()
+                .hasItemCount(2);
     }
 
     @Test
@@ -122,15 +121,11 @@ public class CartOperationsTests extends BaseTest {
                 SauceDemoProduct.BACKPACK,
                 SauceDemoProduct.BIKE_LIGHT);
 
-        assertThat(cartPage.getCartItemsCount())
-                .as("Cart should initially contain 2 items")
-                .isEqualTo(2);
+        CartAssert.assertThat(cartPage).hasItemCount(2);
 
         cartPage.removeItemByIndex(0);
 
-        assertThat(cartPage.getCartItemsCount())
-                .as("Cart should contain 1 item after removal")
-                .isEqualTo(1);
+        CartAssert.assertThat(cartPage).hasItemCount(1);
     }
 
     @Test

@@ -1,5 +1,7 @@
 package qa.autotest.tests.checkout;
 
+import qa.autotest.framework.assertions.CartAssert;
+import qa.autotest.framework.assertions.CheckoutAssert;
 import qa.autotest.tests.BaseTest;
 import io.qameta.allure.*;
 import org.junit.jupiter.api.BeforeEach;
@@ -42,9 +44,7 @@ public class CheckoutFlowTests extends BaseTest {
                 checkoutSteps.proceedToCheckoutInfo(cartSteps.openCart(inventoryPage)),
                 checkoutInfo);
 
-        assertThat(overviewPage.getCartItemsCount())
-                .as("Overview should display items")
-                .isEqualTo(1);
+        CheckoutAssert.assertThat(overviewPage).hasItemCount(1);
     }
 
     @Test
@@ -57,12 +57,10 @@ public class CheckoutFlowTests extends BaseTest {
         CheckoutStepOnePage checkoutPage = checkoutSteps
                 .proceedToCheckoutInfo(cartSteps.openCart(inventoryPage));
 
-        checkoutPage.fillCheckoutInfo("", "Doe", "12345")
-                .clickContinue();
+        checkoutPage.fillCheckoutInfo("", "Doe", "12345").clickContinue();
 
-        assertThat(checkoutPage.getErrorMessage())
-                .as("Error message should be displayed for empty First Name")
-                .contains("First Name is required");
+        CheckoutAssert.assertThat(checkoutPage)
+                .hasValidationError("First Name is required");
     }
 
     @Test
@@ -75,12 +73,10 @@ public class CheckoutFlowTests extends BaseTest {
         CheckoutStepOnePage checkoutPage = checkoutSteps
                 .proceedToCheckoutInfo(cartSteps.openCart(inventoryPage));
 
-        checkoutPage.fillCheckoutInfo("John", "", "12345")
-                .clickContinue();
+        checkoutPage.fillCheckoutInfo("John", "", "12345").clickContinue();
 
-        assertThat(checkoutPage.getErrorMessage())
-                .as("Error message should be displayed for empty Last Name")
-                .contains("Last Name is required");
+        CheckoutAssert.assertThat(checkoutPage)
+                .hasValidationError("Last Name is required");
     }
 
     @Test
@@ -93,12 +89,10 @@ public class CheckoutFlowTests extends BaseTest {
         CheckoutStepOnePage checkoutPage = checkoutSteps
                 .proceedToCheckoutInfo(cartSteps.openCart(inventoryPage));
 
-        checkoutPage.fillCheckoutInfo("John", "Doe", "")
-                .clickContinue();
+        checkoutPage.fillCheckoutInfo("John", "Doe", "").clickContinue();
 
-        assertThat(checkoutPage.getErrorMessage())
-                .as("Error message should be displayed for empty Zip Code")
-                .contains("Postal Code is required");
+        CheckoutAssert.assertThat(checkoutPage)
+                .hasValidationError("Postal Code is required");
     }
 
     @Test
@@ -111,13 +105,8 @@ public class CheckoutFlowTests extends BaseTest {
                 SauceDemoProduct.BACKPACK,
                 SauceDemoProduct.BIKE_LIGHT);
 
-        double subtotal = overviewPage.getSubtotal();
-        double tax      = overviewPage.getTax();
-        double total    = overviewPage.getTotal();
-
-        assertThat(total)
-                .as("Total should equal subtotal + tax")
-                .isEqualTo(subtotal + tax);
+        CheckoutAssert.assertThat(overviewPage)
+                .hasTotalEqualToSubtotalPlusTax();
     }
 
     @Test
@@ -128,13 +117,7 @@ public class CheckoutFlowTests extends BaseTest {
         CheckoutCompletePage completePage = checkoutSteps
                 .completeCheckout(inventoryPage, SauceDemoProduct.BACKPACK);
 
-        assertThat(completePage.isOrderComplete())
-                .as("Order should be completed successfully")
-                .isTrue();
-
-        assertThat(completePage.getCartBadgeCount())
-                .as("Cart should be empty after checkout")
-                .isEqualTo(0);
+        CheckoutAssert.assertThat(completePage).isOrderSuccessful();
     }
 
     @Test
@@ -149,9 +132,7 @@ public class CheckoutFlowTests extends BaseTest {
 
         CartPage cartPage = checkoutPage.clickCancel();
 
-        assertThat(cartPage.getCartItemsCount())
-                .as("Should return to cart page with items")
-                .isEqualTo(1);
+        CartAssert.assertThat(cartPage).hasItemCount(1);
     }
 
     @Test
