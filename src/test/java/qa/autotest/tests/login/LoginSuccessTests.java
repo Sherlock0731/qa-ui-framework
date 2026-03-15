@@ -5,7 +5,6 @@ import io.qameta.allure.*;
 import org.junit.jupiter.api.DisplayName;
 import org.junit.jupiter.api.Tag;
 import org.junit.jupiter.api.Test;
-import qa.autotest.domain.dto.UserDto;
 import qa.autotest.framework.pages.InventoryPage;
 
 import static com.codeborne.selenide.Selenide.webdriver;
@@ -24,20 +23,11 @@ public class LoginSuccessTests extends BaseTest {
     @Severity(SeverityLevel.CRITICAL)
     @Story("Login - Success")
     void testSuccessfulLoginWithStandardUser() {
-        UserDto user = UserDto.builder()
-                .username(config.standardUsername())
-                .password(config.standardPassword())
-                .build();
-        
-        InventoryPage inventoryPage = loginPage
-                .openPage(config.sauceDemoBaseUrl())
-                .login(user)
-                .waitForPageLoad();
-        
+        InventoryPage inventoryPage = authSteps.loginAsStandardUser(loginPage);
+
         webdriver().shouldHave(url(config.sauceDemoBaseUrl() + "/inventory.html"));
-        
-        int productsCount = inventoryPage.getProductsCount();
-        assertThat(productsCount)
+
+        assertThat(inventoryPage.getProductsCount())
                 .as("Products should be displayed")
                 .isEqualTo(6);
     }

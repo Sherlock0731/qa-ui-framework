@@ -6,6 +6,7 @@ import org.junit.jupiter.api.BeforeEach;
 import org.junit.jupiter.api.DisplayName;
 import org.junit.jupiter.api.Tag;
 import org.junit.jupiter.api.Test;
+import qa.autotest.domain.enums.SauceDemoProduct;
 import qa.autotest.framework.pages.CartPage;
 import qa.autotest.framework.pages.InventoryPage;
 
@@ -21,10 +22,7 @@ public class CartOperationsTests extends BaseTest {
 
     @BeforeEach
     void loginAndNavigate() {
-        inventoryPage = loginPage
-                .openPage(config.sauceDemoBaseUrl())
-                .login(config.standardUsername(), config.standardPassword())
-                .waitForPageLoad();
+        inventoryPage = authSteps.loginAsStandardUser(loginPage);
     }
 
     @Test
@@ -32,8 +30,8 @@ public class CartOperationsTests extends BaseTest {
     @Severity(SeverityLevel.CRITICAL)
     @Story("Cart Operations")
     void testAddProductToCart() {
-        inventoryPage.addProductToCartByIndex(0);
-        
+        cartSteps.addProduct(inventoryPage, SauceDemoProduct.BACKPACK);
+
         assertThat(inventoryPage.getCartBadgeCount())
                 .as("Cart badge should show 1 item")
                 .isEqualTo(1);
@@ -44,12 +42,11 @@ public class CartOperationsTests extends BaseTest {
     @Severity(SeverityLevel.CRITICAL)
     @Story("Cart Operations")
     void testAddProductFromDetailsPage() {
-        var productDetailsPage = inventoryPage
-                .openProductDetails("Sauce Labs Backpack")
-                .waitForPageLoad();
-        
+        var productDetailsPage = inventorySteps
+                .openProductDetails(inventoryPage, "Sauce Labs Backpack");
+
         productDetailsPage.addToCart();
-        
+
         assertThat(productDetailsPage.getCartBadgeCount())
                 .as("Cart badge should show 1 item")
                 .isEqualTo(1);
@@ -60,14 +57,14 @@ public class CartOperationsTests extends BaseTest {
     @Severity(SeverityLevel.CRITICAL)
     @Story("Cart Operations")
     void testRemoveProductFromInventory() {
-        inventoryPage.addProductToCartByIndex(0);
-        
+        cartSteps.addProduct(inventoryPage, SauceDemoProduct.BACKPACK);
+
         assertThat(inventoryPage.getCartBadgeCount())
                 .as("Cart badge should show 1 item initially")
                 .isEqualTo(1);
-        
-        inventoryPage.removeProductFromCartByIndex(0);
-        
+
+        inventoryPage.removeProductFromCartByName(SauceDemoProduct.BACKPACK);
+
         assertThat(inventoryPage.isCartBadgeDisplayed())
                 .as("Cart badge should not be displayed after removal")
                 .isFalse();
@@ -78,11 +75,11 @@ public class CartOperationsTests extends BaseTest {
     @Severity(SeverityLevel.CRITICAL)
     @Story("Cart Operations")
     void testAddMultipleProductsToCart() {
-        inventoryPage
-                .addProductToCartByIndex(0)
-                .addProductToCartByIndex(1)
-                .addProductToCartByIndex(2);
-        
+        cartSteps.addProducts(inventoryPage,
+                SauceDemoProduct.BACKPACK,
+                SauceDemoProduct.BIKE_LIGHT,
+                SauceDemoProduct.BOLT_T_SHIRT);
+
         assertThat(inventoryPage.getCartBadgeCount())
                 .as("Cart badge should show 3 items")
                 .isEqualTo(3);
@@ -93,10 +90,10 @@ public class CartOperationsTests extends BaseTest {
     @Severity(SeverityLevel.CRITICAL)
     @Story("Cart Navigation")
     void testNavigateToCart() {
-        inventoryPage.addProductToCartByIndex(0);
-        
-        CartPage cartPage = inventoryPage.openCart().waitForPageLoad();
-        
+        cartSteps.addProduct(inventoryPage, SauceDemoProduct.BACKPACK);
+
+        CartPage cartPage = cartSteps.openCart(inventoryPage);
+
         assertThat(cartPage.isPageLoaded())
                 .as("Cart page should be loaded")
                 .isTrue();
@@ -107,12 +104,10 @@ public class CartOperationsTests extends BaseTest {
     @Severity(SeverityLevel.CRITICAL)
     @Story("Cart Display")
     void testCartDisplaysProducts() {
-        inventoryPage
-                .addProductToCartByIndex(0)
-                .addProductToCartByIndex(1);
-        
-        CartPage cartPage = inventoryPage.openCart().waitForPageLoad();
-        
+        CartPage cartPage = cartSteps.addProductsAndOpenCart(inventoryPage,
+                SauceDemoProduct.BACKPACK,
+                SauceDemoProduct.BIKE_LIGHT);
+
         assertThat(cartPage.getCartItemsCount())
                 .as("Cart should contain 2 items")
                 .isEqualTo(2);
@@ -123,18 +118,16 @@ public class CartOperationsTests extends BaseTest {
     @Severity(SeverityLevel.CRITICAL)
     @Story("Cart Operations")
     void testRemoveProductFromCartPage() {
-        inventoryPage
-                .addProductToCartByIndex(0)
-                .addProductToCartByIndex(1);
-        
-        CartPage cartPage = inventoryPage.openCart().waitForPageLoad();
-        
+        CartPage cartPage = cartSteps.addProductsAndOpenCart(inventoryPage,
+                SauceDemoProduct.BACKPACK,
+                SauceDemoProduct.BIKE_LIGHT);
+
         assertThat(cartPage.getCartItemsCount())
                 .as("Cart should initially contain 2 items")
                 .isEqualTo(2);
-        
+
         cartPage.removeItemByIndex(0);
-        
+
         assertThat(cartPage.getCartItemsCount())
                 .as("Cart should contain 1 item after removal")
                 .isEqualTo(1);
@@ -145,11 +138,11 @@ public class CartOperationsTests extends BaseTest {
     @Severity(SeverityLevel.NORMAL)
     @Story("Cart Navigation")
     void testContinueShopping() {
-        inventoryPage.addProductToCartByIndex(0);
-        
-        CartPage cartPage = inventoryPage.openCart().waitForPageLoad();
+        CartPage cartPage = cartSteps.addProductsAndOpenCart(inventoryPage,
+                SauceDemoProduct.BACKPACK);
+
         inventoryPage = cartPage.continueShopping();
-        
+
         assertThat(inventoryPage.getProductsCount())
                 .as("Should return to inventory page with products")
                 .isEqualTo(6);

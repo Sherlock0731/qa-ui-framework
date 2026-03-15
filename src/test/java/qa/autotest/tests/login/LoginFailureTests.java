@@ -5,6 +5,7 @@ import io.qameta.allure.*;
 import org.junit.jupiter.api.DisplayName;
 import org.junit.jupiter.api.Tag;
 import org.junit.jupiter.api.Test;
+import qa.autotest.framework.pages.LoginPage;
 
 import static org.assertj.core.api.Assertions.assertThat;
 
@@ -18,12 +19,10 @@ public class LoginFailureTests extends BaseTest {
     @Severity(SeverityLevel.CRITICAL)
     @Story("Login - Failure")
     void testLoginWithInvalidUsername() {
-        loginPage
-                .openPage(config.sauceDemoBaseUrl())
-                .loginWithError("invalid_user", config.standardPassword());
-        
-        String errorMessage = loginPage.getErrorMessage();
-        assertThat(errorMessage)
+        LoginPage resultPage = authSteps.loginWithError(loginPage,
+                "invalid_user", config.standardPassword());
+
+        assertThat(resultPage.getErrorMessage())
                 .as("Error message should contain correct text")
                 .contains("Username and password do not match");
     }
@@ -33,11 +32,10 @@ public class LoginFailureTests extends BaseTest {
     @Severity(SeverityLevel.CRITICAL)
     @Story("Login - Failure")
     void testLoginWithInvalidPassword() {
-        loginPage
-                .openPage(config.sauceDemoBaseUrl())
-                .loginWithError(config.standardUsername(), "wrong_password");
-        
-        assertThat(loginPage.isErrorMessageDisplayed())
+        LoginPage resultPage = authSteps.loginWithError(loginPage,
+                config.standardUsername(), "wrong_password");
+
+        assertThat(resultPage.isErrorMessageDisplayed())
                 .as("Error message should be displayed")
                 .isTrue();
     }
@@ -47,12 +45,9 @@ public class LoginFailureTests extends BaseTest {
     @Severity(SeverityLevel.CRITICAL)
     @Story("Login - Validation")
     void testLoginWithEmptyFields() {
-        loginPage
-                .openPage(config.sauceDemoBaseUrl())
-                .clickLoginButton();
-        
-        String errorMessage = loginPage.getErrorMessage();
-        assertThat(errorMessage)
+        loginPage.openPage(config.sauceDemoBaseUrl()).clickLoginButton();
+
+        assertThat(loginPage.getErrorMessage())
                 .as("Error message should indicate username is required")
                 .contains("Username is required");
     }
@@ -62,11 +57,9 @@ public class LoginFailureTests extends BaseTest {
     @Severity(SeverityLevel.CRITICAL)
     @Story("Login - Failure")
     void testLoginWithLockedUser() {
-        loginPage
-                .openPage(config.sauceDemoBaseUrl())
-                .loginWithError(config.lockedUsername(), config.lockedPassword());
-        String errorMessage = loginPage.getErrorMessage();
-        assertThat(errorMessage)
+        LoginPage resultPage = authSteps.loginAsLockedUser(loginPage);
+
+        assertThat(resultPage.getErrorMessage())
                 .as("Error message should indicate user is locked out")
                 .contains("this user has been locked out");
     }

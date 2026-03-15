@@ -19,10 +19,7 @@ public class InventoryDisplayTests extends BaseTest {
 
     @BeforeEach
     void loginAndNavigate() {
-        inventoryPage = loginPage
-                .openPage(config.sauceDemoBaseUrl())
-                .login(config.standardUsername(), config.standardPassword())
-                .waitForPageLoad();
+        inventoryPage = authSteps.loginAsStandardUser(loginPage);
     }
 
     @Test
@@ -30,9 +27,7 @@ public class InventoryDisplayTests extends BaseTest {
     @Severity(SeverityLevel.CRITICAL)
     @Story("Product Display")
     void testAllProductsDisplayed() {
-        int productsCount = inventoryPage.getProductsCount();
-        
-        assertThat(productsCount)
+        assertThat(inventoryPage.getProductsCount())
                 .as("All 6 products should be displayed")
                 .isEqualTo(6);
     }
@@ -42,10 +37,9 @@ public class InventoryDisplayTests extends BaseTest {
     @Severity(SeverityLevel.CRITICAL)
     @Story("Product Navigation")
     void testNavigateToProductDetails() {
-        var productDetailsPage = inventoryPage
-                .openProductDetails("Sauce Labs Backpack")
-                .waitForPageLoad();
-        
+        var productDetailsPage = inventorySteps
+                .openProductDetails(inventoryPage, "Sauce Labs Backpack");
+
         assertThat(productDetailsPage.getProductName())
                 .as("Product name should match")
                 .isEqualTo("Sauce Labs Backpack");

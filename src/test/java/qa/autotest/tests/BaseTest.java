@@ -14,13 +14,31 @@ import qa.autotest.framework.config.ConfigFactory;
 import qa.autotest.framework.config.TestConfig;
 import qa.autotest.framework.drivers.DriverManager;
 import qa.autotest.framework.pages.LoginPage;
+import qa.autotest.framework.steps.AuthSteps;
+import qa.autotest.framework.steps.CartSteps;
+import qa.autotest.framework.steps.CheckoutSteps;
+import qa.autotest.framework.steps.InventorySteps;
 
 /**
- * Base test class with common setup and teardown.
- * Designed for parallel execution ({@link ExecutionMode#CONCURRENT}).
+ * Base test class with common setup, teardown, and Steps-layer access.
+ *
+ * <h3>Steps layer</h3>
+ * Four step objects are initialised per test instance:
+ * <ul>
+ *   <li>{@link AuthSteps}      — login / logout flows</li>
+ *   <li>{@link CartSteps}      — add products, open cart, compound cart scenarios</li>
+ *   <li>{@link CheckoutSteps}  — full and partial checkout funnel</li>
+ *   <li>{@link InventorySteps} — catalog navigation helpers</li>
+ * </ul>
+ *
+ * All step objects are stateless with respect to WebDriver state: they receive
+ * page objects as parameters and return the resulting page object. This makes
+ * them safe under {@link ExecutionMode#CONCURRENT} — each thread works with
+ * its own page-object instances while sharing the same Steps instances (which
+ * carry no mutable per-thread state).
  *
  * <h3>1 — SelenideLogger registration</h3>
- * {@code SelenideLogger} is a global (static) registry.  {@code @BeforeAll} is
+ * {@code SelenideLogger} is a global (static) registry. {@code @BeforeAll} is
  * called once per concrete test class, so with N parallel classes running
  * simultaneously, {@code addListener} may be called N times concurrently.
  * A plain {@code if (!hasListener)} check is not atomic — two threads can both
@@ -31,7 +49,7 @@ import qa.autotest.framework.pages.LoginPage;
  * is registered exactly once across all threads and all test classes.
  *
  * <h3>2 — TestConfig scope</h3>
- * {@code CONFIG} is an instance field (not {@code static}).  This preserves
+ * {@code config} is an instance field (not {@code static}). This preserves
  * immutability-safety while allowing subclasses to inject a different config
  * through the protected constructor — e.g. for environment-specific overrides
  * without touching the base class.
@@ -41,13 +59,13 @@ import qa.autotest.framework.pages.LoginPage;
  * The invariant "driver must be bound before creating a page object" is now
  * made explicit: {@link #setUp()} asserts the driver is present immediately
  * after {@link DriverManager#initDriver(TestConfig)} and before constructing
- * {@code loginPage}.  A missing driver surfaces as a clear
+ * {@code loginPage}. A missing driver surfaces as a clear
  * {@link IllegalStateException} rather than a cryptic Selenide NPE.
  *
  * <h3>Selenide configuration strategy</h3>
  * {@code Configuration.*} fields are written per-thread inside {@link #setUp()},
  * after {@code WebDriverRunner.setWebDriver()} activates the thread-local
- * driver context.  This prevents one thread from overwriting another's timeout.
+ * driver context. This prevents one thread from overwriting another's timeout.
  */
 @Slf4j
 @Execution(ExecutionMode.CONCURRENT)
@@ -59,14 +77,7 @@ public abstract class BaseTest {
      * Test configuration for this instance.
      *
      * <p>Declared as {@code protected final} (not {@code static}) so subclasses
-     * can use a different config without affecting siblings running in parallel:
-     * <pre>
-     *   public class MyStagingTest extends BaseTest {
-     *       public MyStagingTest() {
-     *           super(ConfigFactory.getStagingConfig());
-     *       }
-     *   }
-     * </pre>
+     * can use a different config without affecting siblings running in parallel.
      */
     protected final TestConfig config;
 
@@ -74,6 +85,21 @@ public abstract class BaseTest {
      * Page-object entry point; valid only after {@link #setUp()} completes.
      */
     protected LoginPage loginPage;
+
+    /** Authentication steps: login as various user types, logout. */
+    protected AuthSteps authSteps;
+
+    /** Cart steps: add products, open cart, compound add-and-navigate scenarios. */
+    protected CartSteps cartSteps;
+
+    /**
+     * Checkout steps: partial funnel (info page, overview) and full funnel
+     * (add → cart → info → overview → finish).
+     */
+    protected CheckoutSteps checkoutSteps;
+
+    /** Inventory steps: catalog navigation and product-detail access. */
+    protected InventorySteps inventorySteps;
 
     /**
      * Default constructor — uses the standard Owner-resolved configuration.
@@ -114,12 +140,13 @@ public abstract class BaseTest {
     }
 
     /**
-     * Initializes WebDriver, applies per-thread Selenide configuration, and
-     * constructs the {@link LoginPage} entry point.
+     * Initialises WebDriver, applies per-thread Selenide configuration,
+     * constructs the {@link LoginPage} entry point, and wires up all step
+     * objects.
      *
-     * <p>Invariant enforced here: {@code WebDriverRunner} must have an active
-     * driver before any page object is created.  Violation surfaces as
-     * {@link IllegalStateException} rather than a Selenide proxy NPE.
+     * <p>Step objects depend only on {@link TestConfig} — they carry no
+     * WebDriver references and are safe to construct at any point after config
+     * is available.
      */
     @BeforeEach
     void setUp() {
@@ -150,6 +177,12 @@ public abstract class BaseTest {
 
         // Step 4: create page-object entry point — driver is guaranteed active here
         loginPage = new LoginPage();
+
+        // Step 5: wire up steps layer
+        authSteps      = new AuthSteps(config);
+        cartSteps      = new CartSteps();
+        checkoutSteps  = new CheckoutSteps(config);
+        inventorySteps = new InventorySteps();
     }
 
     @AfterEach

@@ -21,10 +21,7 @@ public class InventorySortingTests extends BaseTest {
 
     @BeforeEach
     void loginAndNavigate() {
-        inventoryPage = loginPage
-                .openPage(config.sauceDemoBaseUrl())
-                .login(config.standardUsername(), config.standardPassword())
-                .waitForPageLoad();
+        inventoryPage = authSteps.loginAsStandardUser(loginPage);
     }
 
     @Test
@@ -33,10 +30,10 @@ public class InventorySortingTests extends BaseTest {
     @Story("Product Sorting")
     void testSortByNameAscending() {
         inventoryPage.sortByNameAscending();
-        
+
         List<String> productNames = inventoryPage.getProductNames();
-        List<String> sortedNames = productNames.stream().sorted().toList();
-        
+        List<String> sortedNames  = productNames.stream().sorted().toList();
+
         assertThat(productNames)
                 .as("Products should be sorted alphabetically A to Z")
                 .isEqualTo(sortedNames);
@@ -48,12 +45,12 @@ public class InventorySortingTests extends BaseTest {
     @Story("Product Sorting")
     void testSortByNameDescending() {
         inventoryPage.sortByNameDescending();
-        
+
         List<String> productNames = inventoryPage.getProductNames();
-        List<String> sortedNames = productNames.stream()
+        List<String> sortedNames  = productNames.stream()
                 .sorted((a, b) -> b.compareTo(a))
                 .toList();
-        
+
         assertThat(productNames)
                 .as("Products should be sorted alphabetically Z to A")
                 .isEqualTo(sortedNames);
@@ -65,10 +62,10 @@ public class InventorySortingTests extends BaseTest {
     @Story("Product Sorting")
     void testSortByPriceLowToHigh() {
         inventoryPage.sortByPriceLowToHigh();
-        
-        List<Double> prices = inventoryPage.getProductPrices();
+
+        List<Double> prices       = inventoryPage.getProductPrices();
         List<Double> sortedPrices = prices.stream().sorted().toList();
-        
+
         assertThat(prices)
                 .as("Products should be sorted by price ascending")
                 .isEqualTo(sortedPrices);
@@ -80,12 +77,12 @@ public class InventorySortingTests extends BaseTest {
     @Story("Product Sorting")
     void testSortByPriceHighToLow() {
         inventoryPage.sortByPriceHighToLow();
-        
-        List<Double> prices = inventoryPage.getProductPrices();
+
+        List<Double> prices       = inventoryPage.getProductPrices();
         List<Double> sortedPrices = prices.stream()
                 .sorted((a, b) -> Double.compare(b, a))
                 .toList();
-        
+
         assertThat(prices)
                 .as("Products should be sorted by price descending")
                 .isEqualTo(sortedPrices);

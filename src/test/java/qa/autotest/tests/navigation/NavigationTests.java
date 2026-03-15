@@ -6,6 +6,7 @@ import org.junit.jupiter.api.BeforeEach;
 import org.junit.jupiter.api.DisplayName;
 import org.junit.jupiter.api.Tag;
 import org.junit.jupiter.api.Test;
+import qa.autotest.domain.enums.SauceDemoProduct;
 import qa.autotest.framework.pages.InventoryPage;
 import qa.autotest.framework.pages.LoginPage;
 
@@ -22,10 +23,7 @@ public class NavigationTests extends BaseTest {
 
     @BeforeEach
     void loginAndNavigate() {
-        inventoryPage = loginPage
-                .openPage(config.sauceDemoBaseUrl())
-                .login(config.standardUsername(), config.standardPassword())
-                .waitForPageLoad();
+        inventoryPage = authSteps.loginAsStandardUser(loginPage);
     }
 
     @Test
@@ -33,18 +31,15 @@ public class NavigationTests extends BaseTest {
     @Severity(SeverityLevel.NORMAL)
     @Story("Navigation")
     void testNavigateToAllItems() {
-        // Navigate to product details page
-        var productDetailsPage = inventoryPage
-                .openProductDetails("Sauce Labs Backpack")
-                .waitForPageLoad();
-        
+        var productDetailsPage = inventorySteps
+                .openProductDetails(inventoryPage, "Sauce Labs Backpack");
+
         assertThat(productDetailsPage.getProductName())
                 .as("Should be on product details page")
                 .isEqualTo("Sauce Labs Backpack");
-        
-        // Navigate back to inventory via All Items
+
         InventoryPage returnedPage = productDetailsPage.clickAllItems().waitForPageLoad();
-        
+
         assertThat(returnedPage.getProductsCount())
                 .as("Should return to inventory page with all products")
                 .isEqualTo(6);
@@ -56,9 +51,9 @@ public class NavigationTests extends BaseTest {
     @Story("Logout")
     void testLogoutThroughBurgerMenu() {
         LoginPage loginPageAfterLogout = inventoryPage.logout();
-        
+
         webdriver().shouldHave(url(config.sauceDemoBaseUrl() + "/"));
-        
+
         assertThat(loginPageAfterLogout.isUsernameEmpty())
                 .as("Username field should be empty after logout")
                 .isTrue();
@@ -69,16 +64,16 @@ public class NavigationTests extends BaseTest {
     @Severity(SeverityLevel.CRITICAL)
     @Story("Reset State")
     void testResetAppState() {
-        inventoryPage
-                .addProductToCartByIndex(0)
-                .addProductToCartByIndex(1);
-        
+        cartSteps.addProducts(inventoryPage,
+                SauceDemoProduct.BACKPACK,
+                SauceDemoProduct.BIKE_LIGHT);
+
         assertThat(inventoryPage.getCartBadgeCount())
                 .as("Cart should have items before reset")
                 .isEqualTo(2);
-        
+
         inventoryPage.resetAppState();
-        
+
         assertThat(inventoryPage.isCartBadgeDisplayed())
                 .as("Cart badge should not be displayed after reset")
                 .isFalse();

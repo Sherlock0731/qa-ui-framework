@@ -7,6 +7,7 @@ import org.junit.jupiter.api.DisplayName;
 import org.junit.jupiter.api.Tag;
 import org.junit.jupiter.api.Test;
 import qa.autotest.domain.dto.CheckoutDto;
+import qa.autotest.domain.enums.SauceDemoProduct;
 import qa.autotest.framework.pages.*;
 
 import static org.assertj.core.api.Assertions.assertThat;
@@ -21,10 +22,7 @@ public class CheckoutFlowTests extends BaseTest {
 
     @BeforeEach
     void loginAndNavigate() {
-        inventoryPage = loginPage
-                .openPage(config.sauceDemoBaseUrl())
-                .login(config.standardUsername(), config.standardPassword())
-                .waitForPageLoad();
+        inventoryPage = authSteps.loginAsStandardUser(loginPage);
     }
 
     @Test
@@ -37,17 +35,13 @@ public class CheckoutFlowTests extends BaseTest {
                 .lastName(config.checkoutLastName())
                 .zipCode(config.checkoutZipCode())
                 .build();
-        
-        inventoryPage.addProductToCartByIndex(0);
-        
-        CheckoutStepTwoPage overviewPage = inventoryPage
-                .openCart()
-                .proceedToCheckout()
-                .waitForPageLoad()
-                .fillCheckoutInfo(checkoutInfo)
-                .clickContinue()
-                .waitForPageLoad();
-        
+
+        cartSteps.addProduct(inventoryPage, SauceDemoProduct.BACKPACK);
+
+        CheckoutStepTwoPage overviewPage = checkoutSteps.fillInfoAndContinue(
+                checkoutSteps.proceedToCheckoutInfo(cartSteps.openCart(inventoryPage)),
+                checkoutInfo);
+
         assertThat(overviewPage.getCartItemsCount())
                 .as("Overview should display items")
                 .isEqualTo(1);
@@ -58,16 +52,14 @@ public class CheckoutFlowTests extends BaseTest {
     @Severity(SeverityLevel.NORMAL)
     @Story("Checkout Validation")
     void testCheckoutWithoutFirstName() {
-        inventoryPage.addProductToCartByIndex(0);
-        
-        CheckoutStepOnePage checkoutPage = inventoryPage
-                .openCart()
-                .proceedToCheckout()
-                .waitForPageLoad();
-        
+        cartSteps.addProduct(inventoryPage, SauceDemoProduct.BACKPACK);
+
+        CheckoutStepOnePage checkoutPage = checkoutSteps
+                .proceedToCheckoutInfo(cartSteps.openCart(inventoryPage));
+
         checkoutPage.fillCheckoutInfo("", "Doe", "12345")
                 .clickContinue();
-        
+
         assertThat(checkoutPage.getErrorMessage())
                 .as("Error message should be displayed for empty First Name")
                 .contains("First Name is required");
@@ -78,16 +70,14 @@ public class CheckoutFlowTests extends BaseTest {
     @Severity(SeverityLevel.NORMAL)
     @Story("Checkout Validation")
     void testCheckoutWithoutLastName() {
-        inventoryPage.addProductToCartByIndex(0);
-        
-        CheckoutStepOnePage checkoutPage = inventoryPage
-                .openCart()
-                .proceedToCheckout()
-                .waitForPageLoad();
-        
+        cartSteps.addProduct(inventoryPage, SauceDemoProduct.BACKPACK);
+
+        CheckoutStepOnePage checkoutPage = checkoutSteps
+                .proceedToCheckoutInfo(cartSteps.openCart(inventoryPage));
+
         checkoutPage.fillCheckoutInfo("John", "", "12345")
                 .clickContinue();
-        
+
         assertThat(checkoutPage.getErrorMessage())
                 .as("Error message should be displayed for empty Last Name")
                 .contains("Last Name is required");
@@ -98,16 +88,14 @@ public class CheckoutFlowTests extends BaseTest {
     @Severity(SeverityLevel.NORMAL)
     @Story("Checkout Validation")
     void testCheckoutWithoutZipCode() {
-        inventoryPage.addProductToCartByIndex(0);
-        
-        CheckoutStepOnePage checkoutPage = inventoryPage
-                .openCart()
-                .proceedToCheckout()
-                .waitForPageLoad();
-        
+        cartSteps.addProduct(inventoryPage, SauceDemoProduct.BACKPACK);
+
+        CheckoutStepOnePage checkoutPage = checkoutSteps
+                .proceedToCheckoutInfo(cartSteps.openCart(inventoryPage));
+
         checkoutPage.fillCheckoutInfo("John", "Doe", "")
                 .clickContinue();
-        
+
         assertThat(checkoutPage.getErrorMessage())
                 .as("Error message should be displayed for empty Zip Code")
                 .contains("Postal Code is required");
@@ -118,21 +106,15 @@ public class CheckoutFlowTests extends BaseTest {
     @Severity(SeverityLevel.CRITICAL)
     @Story("Checkout Calculation")
     void testCheckoutTotalCalculation() {
-        inventoryPage
-                .addProductToCartByIndex(0)
-                .addProductToCartByIndex(1);
-        
-        CheckoutStepTwoPage overviewPage = inventoryPage
-                .openCart()
-                .proceedToCheckout()
-                .fillCheckoutInfo(config.checkoutFirstName(), config.checkoutLastName(), config.checkoutZipCode())
-                .clickContinue()
-                .waitForPageLoad();
-        
+        CheckoutStepTwoPage overviewPage = checkoutSteps.reachCheckoutOverview(
+                inventoryPage,
+                SauceDemoProduct.BACKPACK,
+                SauceDemoProduct.BIKE_LIGHT);
+
         double subtotal = overviewPage.getSubtotal();
-        double tax = overviewPage.getTax();
-        double total = overviewPage.getTotal();
-        
+        double tax      = overviewPage.getTax();
+        double total    = overviewPage.getTotal();
+
         assertThat(total)
                 .as("Total should equal subtotal + tax")
                 .isEqualTo(subtotal + tax);
@@ -143,20 +125,13 @@ public class CheckoutFlowTests extends BaseTest {
     @Severity(SeverityLevel.CRITICAL)
     @Story("Checkout Completion")
     void testCompleteCheckout() {
-        inventoryPage.addProductToCartByIndex(0);
-        
-        CheckoutCompletePage completePage = inventoryPage
-                .openCart()
-                .proceedToCheckout()
-                .fillCheckoutInfo(config.checkoutFirstName(), config.checkoutLastName(), config.checkoutZipCode())
-                .clickContinue()
-                .clickFinish()
-                .waitForPageLoad();
-        
+        CheckoutCompletePage completePage = checkoutSteps
+                .completeCheckout(inventoryPage, SauceDemoProduct.BACKPACK);
+
         assertThat(completePage.isOrderComplete())
                 .as("Order should be completed successfully")
                 .isTrue();
-        
+
         assertThat(completePage.getCartBadgeCount())
                 .as("Cart should be empty after checkout")
                 .isEqualTo(0);
@@ -167,15 +142,13 @@ public class CheckoutFlowTests extends BaseTest {
     @Severity(SeverityLevel.NORMAL)
     @Story("Checkout Navigation")
     void testCancelOnCheckoutInfoPage() {
-        inventoryPage.addProductToCartByIndex(0);
-        
-        CheckoutStepOnePage checkoutPage = inventoryPage
-                .openCart()
-                .proceedToCheckout()
-                .waitForPageLoad();
-        
+        cartSteps.addProduct(inventoryPage, SauceDemoProduct.BACKPACK);
+
+        CheckoutStepOnePage checkoutPage = checkoutSteps
+                .proceedToCheckoutInfo(cartSteps.openCart(inventoryPage));
+
         CartPage cartPage = checkoutPage.clickCancel();
-        
+
         assertThat(cartPage.getCartItemsCount())
                 .as("Should return to cart page with items")
                 .isEqualTo(1);
@@ -186,21 +159,15 @@ public class CheckoutFlowTests extends BaseTest {
     @Severity(SeverityLevel.NORMAL)
     @Story("Checkout Navigation")
     void testCancelOnCheckoutOverviewPage() {
-        inventoryPage.addProductToCartByIndex(0);
-        
-        CheckoutStepTwoPage overviewPage = inventoryPage
-                .openCart()
-                .proceedToCheckout()
-                .fillCheckoutInfo(config.checkoutFirstName(), config.checkoutLastName(), config.checkoutZipCode())
-                .clickContinue()
-                .waitForPageLoad();
-        
+        CheckoutStepTwoPage overviewPage = checkoutSteps
+                .reachCheckoutOverview(inventoryPage, SauceDemoProduct.BACKPACK);
+
         InventoryPage returnedPage = overviewPage.clickCancel();
-        
+
         assertThat(returnedPage.getProductsCount())
                 .as("Should return to inventory page")
                 .isEqualTo(6);
-        
+
         assertThat(returnedPage.getCartBadgeCount())
                 .as("Cart should still contain item")
                 .isEqualTo(1);
