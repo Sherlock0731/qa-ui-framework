@@ -6,17 +6,18 @@ import lombok.Data;
 import lombok.NoArgsConstructor;
 
 /**
- * Data Transfer Object for User credentials
+ * Credentials DTO for authentication.
+ *
+ * <p>Contains only what belongs to a user identity: username and password.
+ * Checkout address data (firstName, lastName, zipCode) belongs exclusively
+ * to {@link CheckoutDto} and must not be duplicated here.
  */
 @Data
 @Builder
 @NoArgsConstructor
 @AllArgsConstructor
 public class UserDto {
-    
+
     private String username;
     private String password;
-    private String firstName;
-    private String lastName;
-    private String zipCode;
 }
