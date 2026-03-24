@@ -45,9 +45,11 @@ public class LoginFailureTests extends BaseTest {
     @Severity(SeverityLevel.CRITICAL)
     @Story("Login - Validation")
     void testLoginWithEmptyFields() {
-        loginPage.openPage(config.sauceDemoBaseUrl()).clickLoginButton();
+        LoginPage resultPage = loginPage
+                .openPage(config.sauceDemoBaseUrl())
+                .submitExpectingError();
 
-        assertThat(loginPage.getErrorMessage())
+        assertThat(resultPage.getErrorMessage())
                 .as("Error message should indicate username is required")
                 .contains("Username is required");
     }
