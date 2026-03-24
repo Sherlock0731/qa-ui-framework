@@ -31,41 +31,29 @@ import qa.autotest.framework.steps.InventorySteps;
  *   <li>{@link InventorySteps} — catalog navigation helpers</li>
  * </ul>
  *
- * All step objects are stateless with respect to WebDriver state: they receive
- * page objects as parameters and return the resulting page object. This makes
- * them safe under {@link ExecutionMode#CONCURRENT} — each thread works with
- * its own page-object instances while sharing the same Steps instances (which
- * carry no mutable per-thread state).
+ * <h3>ISP compliance in the Steps layer</h3>
+ * Each step class now accepts only the config sub-interface it actually needs:
+ * <ul>
+ *   <li>{@link AuthSteps}     ← {@code CredentialConfig}</li>
+ *   <li>{@link CheckoutSteps} ← {@code CheckoutConfig}</li>
+ * </ul>
+ * {@code TestConfig} extends all sub-interfaces, so passing {@code config}
+ * to each step constructor compiles without casts.
  *
- * <h3>1 — SelenideLogger registration</h3>
- * {@code SelenideLogger} is a global (static) registry. {@code @BeforeAll} is
- * called once per concrete test class, so with N parallel classes running
- * simultaneously, {@code addListener} may be called N times concurrently.
- * A plain {@code if (!hasListener)} check is not atomic — two threads can both
- * pass the guard before either has completed the write.
+ * <h3>DriverManager call site</h3>
+ * {@link DriverManager#initDriver(qa.autotest.framework.config.BrowserConfig,
+ * qa.autotest.framework.config.TimeoutConfig)} now accepts the two minimal
+ * interfaces it actually uses.  {@code TestConfig} satisfies both — no
+ * adapter required.
  *
- * <p>Fix: a {@code synchronized} block on a JVM-wide lock
- * ({@code BaseTest.class}) with a double-checked pattern ensures the listener
- * is registered exactly once across all threads and all test classes.
- *
- * <h3>2 — TestConfig scope</h3>
- * {@code config} is an instance field (not {@code static}). This preserves
- * immutability-safety while allowing subclasses to inject a different config
- * through the protected constructor — e.g. for environment-specific overrides
- * without touching the base class.
- *
- * <h3>3 — LoginPage creation contract</h3>
- * {@link LoginPage} wraps Selenide elements that require an active WebDriver.
- * The invariant "driver must be bound before creating a page object" is now
- * made explicit: {@link #setUp()} asserts the driver is present immediately
- * after {@link DriverManager#initDriver(TestConfig)} and before constructing
- * {@code loginPage}. A missing driver surfaces as a clear
- * {@link IllegalStateException} rather than a cryptic Selenide NPE.
+ * <h3>SelenideLogger registration</h3>
+ * Double-checked locking on {@code BaseTest.class} ensures the listener is
+ * registered exactly once across all concurrent class initialisations.
  *
  * <h3>Selenide configuration strategy</h3>
  * {@code Configuration.*} fields are written per-thread inside {@link #setUp()},
  * after {@code WebDriverRunner.setWebDriver()} activates the thread-local
- * driver context. This prevents one thread from overwriting another's timeout.
+ * driver context.  This prevents one thread from overwriting another's timeout.
  */
 @Slf4j
 @Execution(ExecutionMode.CONCURRENT)
@@ -74,19 +62,19 @@ public abstract class BaseTest {
     private static final String ALLURE_LISTENER_KEY = "AllureSelenide";
 
     /**
-     * Test configuration for this instance.
+     * Full test configuration for this instance.
      *
-     * <p>Declared as {@code protected final} (not {@code static}) so subclasses
-     * can use a different config without affecting siblings running in parallel.
+     * <p>Typed as {@link TestConfig} (the composite) rather than a sub-interface
+     * because {@code BaseTest} reads from multiple config groups: browser name
+     * (logging), explicit timeout, screenshot settings, and browser dimensions.
+     * Sub-interfaces are used at the point of injection into collaborators.
      */
     protected final TestConfig config;
 
-    /**
-     * Page-object entry point; valid only after {@link #setUp()} completes.
-     */
+    /** Page-object entry point; valid only after {@link #setUp()} completes. */
     protected LoginPage loginPage;
 
-    /** Authentication steps: login as various user types, logout. */
+    /** Authentication steps: login as various user types. */
     protected AuthSteps authSteps;
 
     /** Cart steps: add products, open cart, compound add-and-navigate scenarios. */
@@ -101,9 +89,7 @@ public abstract class BaseTest {
     /** Inventory steps: catalog navigation and product-detail access. */
     protected InventorySteps inventorySteps;
 
-    /**
-     * Default constructor — uses the standard Owner-resolved configuration.
-     */
+    /** Default constructor — uses the standard Owner-resolved configuration. */
     protected BaseTest() {
         this(ConfigFactory.getConfig());
     }
@@ -117,20 +103,10 @@ public abstract class BaseTest {
         this.config = config;
     }
 
-    /**
-     * Registers the Allure Selenide listener exactly once, even when multiple
-     * test classes initialise concurrently.
-     *
-     * <p>Uses double-checked locking on {@code BaseTest.class} — a stable,
-     * JVM-wide monitor — so the {@code addListener} call is serialised across
-     * all parallel class-loading threads.
-     */
     @BeforeAll
     static void setUpAll() {
         if (!SelenideLogger.hasListener(ALLURE_LISTENER_KEY)) {
             synchronized (BaseTest.class) {
-                // Second check inside the lock: another thread may have registered
-                // the listener between the outer check and acquiring the monitor.
                 if (!SelenideLogger.hasListener(ALLURE_LISTENER_KEY)) {
                     SelenideLogger.addListener(ALLURE_LISTENER_KEY, new AllureSelenideListener());
                     log.info("AllureSelenide listener registered");
@@ -139,15 +115,6 @@ public abstract class BaseTest {
         }
     }
 
-    /**
-     * Initialises WebDriver, applies per-thread Selenide configuration,
-     * constructs the {@link LoginPage} entry point, and wires up all step
-     * objects.
-     *
-     * <p>Step objects depend only on {@link TestConfig} — they carry no
-     * WebDriver references and are safe to construct at any point after config
-     * is available.
-     */
     @BeforeEach
     void setUp() {
         log.info("=== Test started: {} | thread: {} | browser: {} ===",
@@ -155,10 +122,10 @@ public abstract class BaseTest {
                 Thread.currentThread().getName(),
                 config.browser());
 
-        // Step 1: bind a fresh WebDriver to the current thread
-        DriverManager.initDriver(config);
+        // Step 1: bind a fresh WebDriver — pass only the interfaces DriverManager needs
+        DriverManager.initDriver(config, config);
 
-        // Step 2: explicit contract check — driver must be active before PO creation
+        // Step 2: driver contract check
         if (!WebDriverRunner.hasWebDriverStarted()) {
             throw new IllegalStateException(
                     "WebDriver was not initialised for thread: "
@@ -166,22 +133,22 @@ public abstract class BaseTest {
                             + ". DriverManager.initDriver() must succeed before creating page objects.");
         }
 
-        // Step 3: apply Selenide config per-thread (after setWebDriver activates TL context)
-        Configuration.timeout = config.explicitTimeout();
-        Configuration.screenshots = config.screenshotOnFailure();
+        // Step 3: per-thread Selenide config (after setWebDriver activates TL context)
+        Configuration.timeout      = config.explicitTimeout();
+        Configuration.screenshots  = config.screenshotOnFailure();
         Configuration.reportsFolder = config.screenshotFolder();
-        Configuration.browserSize = config.browserWidth() + "x" + config.browserHeight();
+        Configuration.browserSize  = config.browserWidth() + "x" + config.browserHeight();
 
         log.debug("Selenide config — timeout: {}ms, screenshots: {}, reportsFolder: {}",
                 config.explicitTimeout(), config.screenshotOnFailure(), config.screenshotFolder());
 
-        // Step 4: create page-object entry point — driver is guaranteed active here
+        // Step 4: page-object entry point — driver guaranteed active
         loginPage = new LoginPage();
 
-        // Step 5: wire up steps layer
-        authSteps      = new AuthSteps(config);
+        // Step 5: steps layer — each receives only the config slice it needs
+        authSteps      = new AuthSteps(config);       // CredentialConfig
         cartSteps      = new CartSteps();
-        checkoutSteps  = new CheckoutSteps(config);
+        checkoutSteps  = new CheckoutSteps(config);   // CheckoutConfig
         inventorySteps = new InventorySteps();
     }
 

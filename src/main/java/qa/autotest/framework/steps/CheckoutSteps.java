@@ -5,7 +5,7 @@ import lombok.RequiredArgsConstructor;
 import lombok.extern.slf4j.Slf4j;
 import qa.autotest.domain.dto.CheckoutDto;
 import qa.autotest.domain.enums.SauceDemoProduct;
-import qa.autotest.framework.config.TestConfig;
+import qa.autotest.framework.config.CheckoutConfig;
 import qa.autotest.framework.pages.CartPage;
 import qa.autotest.framework.pages.CheckoutCompletePage;
 import qa.autotest.framework.pages.CheckoutStepOnePage;
@@ -15,21 +15,21 @@ import qa.autotest.framework.pages.InventoryPage;
 /**
  * Business-level checkout steps.
  *
- * <p>Covers the full checkout funnel — from cart to confirmation — in a single
- * method call. Tests describe the <em>scenario under test</em> rather than
- * every page-navigation detail.
- *
- * <p>Config-sourced checkout data ({@code checkoutFirstName}, etc.) is read
- * once via the injected {@link TestConfig}. Tests that need custom data
- * pass an explicit {@link CheckoutDto}.
- *
- * <p>Stateless: safe under parallel execution.
+ * <h3>ISP compliance</h3>
+ * The former implementation accepted the full {@code TestConfig}.  This class
+ * only reads checkout form defaults (first name, last name, zip code) —
+ * provided by {@link CheckoutConfig}.  Narrowing the dependency decouples the
+ * checkout flow from browser, timeout, and credential settings.
  */
 @Slf4j
 @RequiredArgsConstructor
 public class CheckoutSteps {
 
-    private final TestConfig config;
+    private final CheckoutConfig config;
+
+    // ──────────────────────────────────────────────────────────────────────────
+    // Partial-flow steps (used in tests that verify intermediate pages)
+    // ──────────────────────────────────────────────────────────────────────────
 
     /**
      * Navigates from the cart page to {@link CheckoutStepOnePage}.
@@ -70,7 +70,7 @@ public class CheckoutSteps {
      */
     @Step("Fill checkout info from DTO and continue")
     public CheckoutStepTwoPage fillInfoAndContinue(CheckoutStepOnePage checkoutInfoPage,
-                                                   CheckoutDto checkoutDto) {
+                                                    CheckoutDto checkoutDto) {
         log.info("Filling checkout info: {} {} {}",
                 checkoutDto.getFirstName(), checkoutDto.getLastName(), checkoutDto.getZipCode());
         return checkoutInfoPage
@@ -79,12 +79,13 @@ public class CheckoutSteps {
                 .waitForPageLoad();
     }
 
+    // ──────────────────────────────────────────────────────────────────────────
+    // Full-flow compound steps
+    // ──────────────────────────────────────────────────────────────────────────
+
     /**
      * Runs the complete checkout funnel:
      * add product → open cart → fill info (from config) → overview → finish.
-     *
-     * <p>Use when the test under verification is <em>after</em> checkout
-     * completes (e.g. order confirmation, empty cart).
      *
      * @param inventoryPage active inventory page
      * @param product       product to purchase
@@ -92,7 +93,7 @@ public class CheckoutSteps {
      */
     @Step("Complete checkout with product: {product}")
     public CheckoutCompletePage completeCheckout(InventoryPage inventoryPage,
-                                                 SauceDemoProduct product) {
+                                                  SauceDemoProduct product) {
         log.info("Running full checkout for product: {}", product.getDisplayName());
         return inventoryPage
                 .addProductToCartByName(product)
@@ -118,8 +119,8 @@ public class CheckoutSteps {
      */
     @Step("Complete checkout with product: {product}, info: {checkoutDto}")
     public CheckoutCompletePage completeCheckout(InventoryPage inventoryPage,
-                                                 SauceDemoProduct product,
-                                                 CheckoutDto checkoutDto) {
+                                                  SauceDemoProduct product,
+                                                  CheckoutDto checkoutDto) {
         log.info("Running full checkout for product: {} with custom info", product.getDisplayName());
         return inventoryPage
                 .addProductToCartByName(product)
@@ -134,8 +135,7 @@ public class CheckoutSteps {
 
     /**
      * Navigates from inventory through cart to the overview page without
-     * finishing the order. Use when the test verifies the overview page itself
-     * (totals, item list).
+     * finishing the order.
      *
      * @param inventoryPage active inventory page
      * @param products      one or more products to add
@@ -143,7 +143,7 @@ public class CheckoutSteps {
      */
     @Step("Reach checkout overview with products: {products}")
     public CheckoutStepTwoPage reachCheckoutOverview(InventoryPage inventoryPage,
-                                                     SauceDemoProduct... products) {
+                                                      SauceDemoProduct... products) {
         log.info("Reaching checkout overview with {} product(s)", products.length);
         for (SauceDemoProduct product : products) {
             inventoryPage.addProductToCartByName(product);

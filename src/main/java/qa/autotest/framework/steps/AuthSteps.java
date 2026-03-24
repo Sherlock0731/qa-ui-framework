@@ -4,31 +4,25 @@ import io.qameta.allure.Step;
 import lombok.RequiredArgsConstructor;
 import lombok.extern.slf4j.Slf4j;
 import qa.autotest.domain.dto.UserDto;
-import qa.autotest.framework.config.TestConfig;
+import qa.autotest.framework.config.CredentialConfig;
 import qa.autotest.framework.pages.InventoryPage;
 import qa.autotest.framework.pages.LoginPage;
 
 /**
  * Business-level authentication steps.
  *
- * <p>Encapsulates the login/logout flow so test classes express <em>intent</em>
- * ("login as standard user") rather than <em>mechanics</em> (open page →
- * fill credentials → click → wait).
- *
- * <p>All duplicated {@code @BeforeEach loginAndNavigate()} blocks across
- * {@code CartOperationsTests}, {@code CheckoutFlowTests},
- * {@code InventoryDisplayTests}, {@code InventorySortingTests}, and
- * {@code NavigationTests} delegate to methods in this class.
- *
- * <p>Stateless: every method receives a {@link LoginPage} entry point and
- * returns the resulting page object. No mutable fields — safe under parallel
- * execution where each thread owns its own {@link LoginPage} instance.
+ * <h3>ISP compliance</h3>
+ * The former implementation accepted the full {@code TestConfig}.  This class
+ * only needs the application URL and user credentials — both provided by
+ * {@link CredentialConfig}.  Narrowing the dependency makes the contract
+ * explicit and allows this class to be used in contexts that supply a custom
+ * credential config without carrying the full test configuration.
  */
 @Slf4j
 @RequiredArgsConstructor
 public class AuthSteps {
 
-    private final TestConfig config;
+    private final CredentialConfig config;
 
     /**
      * Opens the login page and authenticates with standard-user credentials.
