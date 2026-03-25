@@ -11,6 +11,7 @@ import lombok.extern.slf4j.Slf4j;
 import java.io.File;
 import java.io.FileInputStream;
 import java.io.IOException;
+import java.io.ByteArrayInputStream;
 import java.nio.charset.StandardCharsets;
 
 /**
@@ -91,7 +92,8 @@ public class AllureSelenideListener implements LogEventListener {
                 if (pageSource != null && !pageSource.isBlank()) {
                     Allure.addAttachment(
                             "Page Source", "text/html",
-                            pageSource.getBytes(StandardCharsets.UTF_8));
+                            new ByteArrayInputStream(pageSource.getBytes(StandardCharsets.UTF_8)),
+                            "html");
                     log.debug("Page source attached ({} chars)", pageSource.length());
                 }
             }
