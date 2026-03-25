@@ -1,0 +1,3 @@
+Test: qa.autotest.tests.inventory.InventorySortingTests#testSortByPriceLowToHigh
+Status: PASS
+Flaky: false

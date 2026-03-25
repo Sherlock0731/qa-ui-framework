@@ -1,0 +1,3 @@
+Test: qa.autotest.tests.login.LoginFailureTests#testLoginWithLockedUser
+Status: PASS
+Flaky: false
