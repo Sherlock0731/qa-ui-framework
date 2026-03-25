@@ -1,5 +1,6 @@
 package qa.autotest.framework.drivers;
 
+import com.codeborne.selenide.Configuration;
 import com.codeborne.selenide.WebDriverRunner;
 import lombok.extern.slf4j.Slf4j;
 import org.openqa.selenium.WebDriver;
@@ -14,9 +15,25 @@ import java.time.Duration;
  * {@link WebDriver} instance. Browser instantiation is fully delegated
  * to {@link DriverFactory} — this class contains zero browser-specific logic.
  *
- * <p>Selenide configuration (timeout, screenshots, reportsFolder) is
- * intentionally NOT set here; it belongs in {@code BaseTest.setUp()} so that
- * each thread applies its own values without racing against other threads.
+ * <h3>Selenide Configuration ownership</h3>
+ * {@code com.codeborne.selenide.Configuration} fields are plain {@code static}
+ * fields — they are <strong>not</strong> {@code ThreadLocal}.  Writing them
+ * from multiple concurrent threads (as was previously done in
+ * {@code BaseTest.setUp()}) creates a race condition: a thread can read a
+ * timeout value that was written by a different thread before that thread had
+ * a chance to overwrite it with its own value.
+ *
+ * <p>The fix is two-part:
+ * <ol>
+ *   <li>The {@code parallel} Maven profile (JUnit concurrent, single JVM) has
+ *       been removed from {@code pom.xml}.  Parallelism is only supported via
+ *       {@code parallel-strict} ({@code forkCount}), which runs each fork as an
+ *       independent JVM process.  Within a single fork, only one thread is
+ *       active, so {@code Configuration} writes are inherently race-free.</li>
+ *   <li>The {@code Configuration.*} writes have been moved here, co-located
+ *       with WebDriver initialisation.  {@code BaseTest} no longer touches
+ *       Selenide static state.</li>
+ * </ol>
  */
 @Slf4j
 public final class DriverManager {
@@ -40,7 +57,14 @@ public final class DriverManager {
             driverHolder.set(webDriver);
             WebDriverRunner.setWebDriver(webDriver);
 
+            Configuration.timeout       = config.explicitTimeout();
+            Configuration.screenshots   = config.screenshotOnFailure();
+            Configuration.reportsFolder = config.screenshotFolder();
+            Configuration.browserSize   = config.browserWidth() + "x" + config.browserHeight();
+
             log.info("Driver ready on thread: {}", Thread.currentThread().getName());
+            log.debug("Selenide config — timeout: {}ms, screenshots: {}, reportsFolder: {}",
+                    config.explicitTimeout(), config.screenshotOnFailure(), config.screenshotFolder());
 
         } catch (Exception e) {
             log.error("Failed to initialize driver: {}", e.getMessage(), e);

@@ -1,6 +1,5 @@
 package qa.autotest.tests;
 
-import com.codeborne.selenide.Configuration;
 import com.codeborne.selenide.WebDriverRunner;
 import com.codeborne.selenide.logevents.SelenideLogger;
 import qa.autotest.framework.listeners.AllureSelenideListener;
@@ -38,9 +37,24 @@ import qa.autotest.framework.steps.InventorySteps;
  * registered exactly once across all concurrent class initialisations.
  *
  * <h3>Selenide configuration strategy</h3>
- * {@code Configuration.*} fields are written per-thread inside {@link #setUp()},
- * after {@code WebDriverRunner.setWebDriver()} activates the thread-local
- * driver context. This prevents one thread from overwriting another's timeout.
+ * {@code com.codeborne.selenide.Configuration} fields are plain {@code static}
+ * fields — they are <strong>not</strong> {@code ThreadLocal}.  Writing them
+ * from a concurrent JUnit execution (same JVM, multiple threads) creates a
+ * race: thread B can read {@code Configuration.timeout} before thread B has
+ * written its own value, producing non-deterministic element-wait behaviour.
+ *
+ * <p>Resolution: the {@code parallel} Maven profile (which enabled
+ * {@code parallel=methods} inside a single JVM) has been removed.  The only
+ * supported parallel execution mode is {@code parallel-strict}
+ * ({@code forkCount=${thread.count}}), where each fork is a separate JVM
+ * process with its own class-loader and therefore its own isolated copy of
+ * {@code Configuration}.  Within a single fork exactly one thread runs, so
+ * the writes in {@link #setUp()} are safe.
+ *
+ * <p>{@code Configuration.*} writes have been moved into
+ * {@link DriverManager#initDriver(TestConfig)} so that all driver-related
+ * initialisation is co-located in one place and this class stays free of
+ * Selenide static-state concerns.
  */
 @Slf4j
 @ExtendWith(FlakyDetectionExtension.class)
@@ -93,14 +107,6 @@ public abstract class BaseTest {
                             + Thread.currentThread().getName()
                             + ". DriverManager.initDriver() must succeed before creating page objects.");
         }
-
-        Configuration.timeout       = config.explicitTimeout();
-        Configuration.screenshots   = config.screenshotOnFailure();
-        Configuration.reportsFolder = config.screenshotFolder();
-        Configuration.browserSize   = config.browserWidth() + "x" + config.browserHeight();
-
-        log.debug("Selenide config — timeout: {}ms, screenshots: {}, reportsFolder: {}",
-                config.explicitTimeout(), config.screenshotOnFailure(), config.screenshotFolder());
 
         loginPage      = new LoginPage();
         authSteps      = new AuthSteps(config);
