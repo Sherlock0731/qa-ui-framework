@@ -1,0 +1,244 @@
+# Reusable workflow — single source of truth for UI test execution.
+#
+# All caller workflows (test-all.yml, test-login.yml, …) delegate here via
+# `uses: ./.github/workflows/run-tests.yml`.  Any change to the execution
+# pipeline (browser installation, Allure history management, artifact upload,
+# gh-pages deployment) is made once in this file and takes effect for every
+# caller automatically.
+#
+# Inputs
+# ──────
+# suite_name    Human-readable label used in artifact names and check titles.
+#               Example: "All Tests", "Login", "Cart"
+#
+# test_groups   Maven -Dgroups value.  Empty string = run all tests.
+#               Example: "", "login", "cart", "checkout", "inventory", "navigation"
+#
+# thread_count  Number of JVM forks for parallel-strict execution (default: 4).
+#
+# browser       Browser to use (default: chrome).
+#
+# deploy_pages  Whether to deploy the Allure report to GitHub Pages (default: true).
+#               Set to false for suite-specific runs that should not overwrite
+#               the main report.
+
+on:
+  workflow_call:
+    inputs:
+      suite_name:
+        description: 'Human-readable suite label (used in artifact names)'
+        required: true
+        type: string
+      test_groups:
+        description: 'JUnit tag filter passed as -Dgroups (empty = all tests)'
+        required: false
+        type: string
+        default: ''
+      thread_count:
+        description: 'Number of parallel JVM forks'
+        required: false
+        type: string
+        default: '4'
+      browser:
+        description: 'Browser (chrome | firefox)'
+        required: false
+        type: string
+        default: 'chrome'
+      deploy_pages:
+        description: 'Deploy Allure report to GitHub Pages'
+        required: false
+        type: boolean
+        default: true
+    secrets:
+      SAUCEDEMO_BASE_URL:
+        required: true
+      USER_STANDARD_USERNAME:
+        required: true
+      USER_STANDARD_PASSWORD:
+        required: true
+      USER_LOCKED_USERNAME:
+        required: false
+      CHECKOUT_FIRSTNAME:
+        required: false
+      CHECKOUT_LASTNAME:
+        required: false
+      CHECKOUT_ZIPCODE:
+        required: false
+
+jobs:
+  run-tests:
+    runs-on: ubuntu-latest
+
+    steps:
+      - name: Checkout source code
+        uses: actions/checkout@v4
+
+      - name: Set up Java 17
+        uses: actions/setup-java@v4
+        with:
+          distribution: temurin
+          java-version: 17
+          cache: maven
+
+      - name: Install browsers
+        run: |
+          sudo apt-get update -qq
+          sudo apt-get install -y google-chrome-stable firefox
+
+      - name: Checkout gh-pages (Allure history)
+        uses: actions/checkout@v4
+        with:
+          ref: gh-pages
+          path: gh-pages
+        continue-on-error: true
+
+      - name: Back up Allure history
+        run: |
+          mkdir -p /tmp/allure-history
+          if [ -d gh-pages/history ]; then
+            cp -r gh-pages/history/* /tmp/allure-history/
+            echo "Backed up $(ls -1 /tmp/allure-history | wc -l) history files"
+          else
+            echo "No existing history (first run or gh-pages branch absent)"
+          fi
+
+      # Created before `mvn clean` so it survives the target/ wipe.
+      - name: Prepare Allure environment file
+        run: |
+          mkdir -p /tmp/allure-env
+          cat > /tmp/allure-env/environment.properties << EOF
+          Browser=${{ inputs.browser }}
+          Browser.Version=stable
+          Threads=${{ inputs.thread_count }}
+          Profile=parallel-strict
+          Environment=CI
+          Platform=ubuntu-latest
+          Java.Version=17
+          Maven.Version=3.8+
+          Framework=JUnit 5
+          Test.Suite=${{ inputs.suite_name }}
+          Test.Groups=${{ inputs.test_groups != '' && inputs.test_groups || 'all' }}
+          Workflow=${{ github.workflow }}
+          Run.Number=${{ github.run_number }}
+          Triggered.By=${{ github.actor }}
+          Branch=${{ github.ref_name }}
+          Commit=${{ github.sha }}
+          Repository=${{ github.repository }}
+          EOF
+
+      - name: Seed allure-results before mvn clean
+        run: |
+          mkdir -p target/allure-results
+          cp /tmp/allure-env/environment.properties target/allure-results/
+
+      - name: Run tests — ${{ inputs.suite_name }}
+        env:
+          SAUCEDEMO_BASE_URL:       ${{ secrets.SAUCEDEMO_BASE_URL }}
+          USER_STANDARD_USERNAME:   ${{ secrets.USER_STANDARD_USERNAME }}
+          USER_STANDARD_PASSWORD:   ${{ secrets.USER_STANDARD_PASSWORD }}
+          USER_LOCKED_USERNAME:     ${{ secrets.USER_LOCKED_USERNAME }}
+          CHECKOUT_FIRSTNAME:       ${{ secrets.CHECKOUT_FIRSTNAME }}
+          CHECKOUT_LASTNAME:        ${{ secrets.CHECKOUT_LASTNAME }}
+          CHECKOUT_ZIPCODE:         ${{ secrets.CHECKOUT_ZIPCODE }}
+        run: |
+          GROUPS_ARG=""
+          if [ -n "${{ inputs.test_groups }}" ]; then
+            GROUPS_ARG="-Dgroups=${{ inputs.test_groups }}"
+          fi
+
+          mvn clean test \
+            -Pparallel-strict \
+            -Denv=ci \
+            -Dbrowser=${{ inputs.browser }} \
+            -Dheadless=true \
+            -Dthread.count=${{ inputs.thread_count }} \
+            -Dallure.results.directory=target/allure-results \
+            $GROUPS_ARG
+
+      - name: Restore environment.properties (survives mvn clean)
+        if: always()
+        run: |
+          mkdir -p target/allure-results
+          cp /tmp/allure-env/environment.properties target/allure-results/
+
+      - name: Write Allure executor.json
+        if: always()
+        run: |
+          cat > target/allure-results/executor.json << EOF
+          {
+            "name": "GitHub Actions",
+            "type": "github",
+            "buildName": "${{ github.workflow }} #${{ github.run_number }}",
+            "buildUrl": "https://github.com/${{ github.repository }}/actions/runs/${{ github.run_id }}",
+            "buildOrder": ${{ github.run_number }},
+            "reportUrl": "https://${{ github.repository_owner }}.github.io/${{ github.event.repository.name }}/"
+          }
+          EOF
+
+      - name: Restore Allure history
+        if: always()
+        run: |
+          mkdir -p target/allure-results/history
+          if [ "$(ls -A /tmp/allure-history 2>/dev/null)" ]; then
+            cp -r /tmp/allure-history/* target/allure-results/history/
+            echo "Restored $(ls -1 target/allure-results/history | wc -l) history files"
+          fi
+
+      - name: Generate Allure report
+        if: always()
+        run: mvn allure:report
+
+      - name: Deploy Allure report to GitHub Pages
+        if: always() && inputs.deploy_pages
+        uses: peaceiris/actions-gh-pages@v3
+        with:
+          github_token: ${{ secrets.GITHUB_TOKEN }}
+          publish_dir: target/site/allure-maven-plugin
+          keep_files: false
+          user_name: 'github-actions[bot]'
+          user_email: 'github-actions[bot]@users.noreply.github.com'
+
+      - name: Print report URL
+        if: always() && inputs.deploy_pages
+        run: |
+          echo "Allure report: https://${{ github.repository_owner }}.github.io/${{ github.event.repository.name }}/"
+          echo "Pages deployment may take 5–10 minutes."
+
+      - name: Upload Allure results
+        if: always()
+        uses: actions/upload-artifact@v4
+        with:
+          name: allure-results-${{ inputs.suite_name }}
+          path: target/allure-results
+          retention-days: 30
+
+      - name: Upload Allure report
+        if: always()
+        uses: actions/upload-artifact@v4
+        with:
+          name: allure-report-${{ inputs.suite_name }}
+          path: target/site/allure-maven-plugin
+          retention-days: 30
+
+      - name: Upload test logs
+        if: always()
+        uses: actions/upload-artifact@v4
+        with:
+          name: test-logs-${{ inputs.suite_name }}
+          path: target/logs/
+          retention-days: 7
+
+      - name: Upload screenshots
+        if: failure()
+        uses: actions/upload-artifact@v4
+        with:
+          name: screenshots-${{ inputs.suite_name }}
+          path: target/screenshots/
+          retention-days: 7
+
+      - name: Publish test results
+        if: always()
+        uses: EnricoMi/publish-unit-test-result-action@v2
+        with:
+          files: target/surefire-reports/*.xml
+          check_name: Test Results — ${{ inputs.suite_name }}

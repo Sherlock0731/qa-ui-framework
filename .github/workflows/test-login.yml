@@ -1,192 +1,28 @@
-name: UI Tests - Login
+name: UI Tests — Login
 
 on:
   workflow_dispatch:
     inputs:
       browser:
-        description: 'Browser to use'
+        description: 'Browser'
         default: 'chrome'
         type: choice
-        options: ['chrome','firefox']
+        options: ['chrome', 'firefox']
 
 jobs:
-  test-login:
-    runs-on: ubuntu-latest
-
-    steps:
-      # ─────────────────────────────────────────────
-      # Checkout source code
-      # ─────────────────────────────────────────────
-      - uses: actions/checkout@v4
-
-      # ─────────────────────────────────────────────
-      # Setup Java
-      # ─────────────────────────────────────────────
-      - uses: actions/setup-java@v4
-        with:
-          distribution: temurin
-          java-version: 17
-          cache: maven
-
-      # ─────────────────────────────────────────────
-      # Install browsers
-      # ─────────────────────────────────────────────
-      - name: Install browsers
-        run: |
-          sudo apt-get update
-          sudo apt-get install -y google-chrome-stable firefox
-
-      # ─────────────────────────────────────────────
-      # Restore Allure history from gh-pages
-      # ─────────────────────────────────────────────
-      - name: Checkout gh-pages (Allure history)
-        uses: actions/checkout@v4
-        with:
-          ref: gh-pages
-          path: gh-pages
-        continue-on-error: true
-
-      - name: Backup Allure history to temp
-        run: |
-          mkdir -p /tmp/allure-history
-          if [ -d gh-pages/history ]; then
-            cp -r gh-pages/history/* /tmp/allure-history/
-            echo "Backed up $(ls -1 /tmp/allure-history 2>/dev/null | wc -l) history files"
-          fi
-
-      # ─────────────────────────────────────────────
-      # Create Allure environment info
-      # ─────────────────────────────────────────────
-      - name: Create Allure environment info
-        run: |
-          mkdir -p /tmp/allure-env
-          cat > /tmp/allure-env/environment.properties << EOFINNER
-          Browser=${{ github.event.inputs.browser || 'chrome' }}
-          Browser.Version=stable
-          Environment=CI
-          Platform=ubuntu-latest
-          Java.Version=17
-          Maven.Version=3.8+
-          Framework=JUnit 5
-          Test.Suite=Login
-          Test.Groups=login
-          Workflow=${{ github.workflow }}
-          Run.Number=${{ github.run_number }}
-          Triggered.By=${{ github.actor }}
-          Branch=${{ github.ref_name }}
-          Commit=${{ github.sha }}
-          Repository=${{ github.repository }}
-          EOFINNER
-          echo "Created environment.properties"
-
-      # ─────────────────────────────────────────────
-      # Run Login tests (JUnit)
-      # ─────────────────────────────────────────────
-      - name: Run Login tests
-        env:
-          SAUCEDEMO_BASE_URL: ${{ secrets.SAUCEDEMO_BASE_URL }}
-          USER_STANDARD_USERNAME: ${{ secrets.USER_STANDARD_USERNAME }}
-          USER_STANDARD_PASSWORD: ${{ secrets.USER_STANDARD_PASSWORD }}
-          USER_LOCKED_USERNAME: ${{ secrets.USER_LOCKED_USERNAME }}
-        run: |
-          mvn clean test \
-            -Denv=ci \
-            -Dbrowser=${{ github.event.inputs.browser || 'chrome' }} \
-            -Dheadless=true \
-            -Dgroups=login \
-            -Dallure.results.directory=target/allure-results
-
-      - name: Restore environment.properties
-        if: always()
-        run: |
-          mkdir -p target/allure-results
-          cp /tmp/allure-env/environment.properties target/allure-results/
-          echo "Restored environment.properties"
-
-      - name: Create Allure executor info
-        if: always()
-        run: |
-          cat > target/allure-results/executor.json << EOFINNER
-          {
-            "name": "GitHub Actions",
-            "type": "github",
-            "buildName": "${{ github.workflow }} #${{ github.run_number }}",
-            "buildUrl": "https://github.com/${{ github.repository }}/actions/runs/${{ github.run_id }}",
-            "buildOrder": ${{ github.run_number }},
-            "reportUrl": "https://${{ github.repository_owner }}.github.io/${{ github.event.repository.name }}/"
-          }
-          EOFINNER
-
-      - name: Restore Allure history
-        if: always()
-        run: |
-          mkdir -p target/allure-results/history
-          if [ -d /tmp/allure-history ]; then
-            cp -r /tmp/allure-history/* target/allure-results/history/ 2>/dev/null || true
-          fi
-
-      - name: Verify files
-        if: always()
-        run: |
-          echo "Files:"
-          ls -lah target/allure-results/ | grep -E "environment|executor"
-          cat target/allure-results/environment.properties
-
-      # ─────────────────────────────────────────────
-      # Generate Allure report
-      # ─────────────────────────────────────────────
-      - name: Generate Allure Report
-        if: always()
-        run: mvn allure:report
-
-      # ─────────────────────────────────────────────
-      # Deploy Allure report to gh-pages
-      # ─────────────────────────────────────────────
-      - name: Deploy Allure report to GitHub Pages
-        if: always()
-        uses: peaceiris/actions-gh-pages@v3
-        with:
-          github_token: ${{ secrets.GITHUB_TOKEN }}
-          publish_dir: target/site/allure-maven-plugin
-          keep_files: false
-          user_name: 'github-actions[bot]'
-          user_email: 'github-actions[bot]@users.noreply.github.com'
-
-      - name: Upload artifacts
-        if: always()
-        uses: actions/upload-artifact@v4
-        with:
-          name: allure-results-login
-          path: target/allure-results
-          retention-days: 30
-
-      - name: Upload Allure Report
-        if: always()
-        uses: actions/upload-artifact@v4
-        with:
-          name: allure-report-login
-          path: target/site/allure-maven-plugin
-          retention-days: 30
-
-      - name: Upload Test Logs
-        if: always()
-        uses: actions/upload-artifact@v4
-        with:
-          name: test-logs-login
-          path: target/logs/
-          retention-days: 7
-
-      - name: Upload Screenshots
-        if: failure()
-        uses: actions/upload-artifact@v4
-        with:
-          name: screenshots-login
-          path: target/screenshots/
-          retention-days: 7
-
-      - name: Publish Test Results
-        if: always()
-        uses: EnricoMi/publish-unit-test-result-action@v2
-        with:
-          files: target/surefire-reports/*.xml
-          check_name: Test Results - Login Tests
+  login-tests:
+    uses: ./.github/workflows/run-tests.yml
+    with:
+      suite_name:   'Login'
+      test_groups:  'login'
+      thread_count: '1'
+      browser:      ${{ inputs.browser || 'chrome' }}
+      deploy_pages: false
+    secrets:
+      SAUCEDEMO_BASE_URL:     ${{ secrets.SAUCEDEMO_BASE_URL }}
+      USER_STANDARD_USERNAME: ${{ secrets.USER_STANDARD_USERNAME }}
+      USER_STANDARD_PASSWORD: ${{ secrets.USER_STANDARD_PASSWORD }}
+      USER_LOCKED_USERNAME:   ${{ secrets.USER_LOCKED_USERNAME }}
+      CHECKOUT_FIRSTNAME:     ${{ secrets.CHECKOUT_FIRSTNAME }}
+      CHECKOUT_LASTNAME:      ${{ secrets.CHECKOUT_LASTNAME }}
+      CHECKOUT_ZIPCODE:       ${{ secrets.CHECKOUT_ZIPCODE }}
