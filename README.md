@@ -33,34 +33,62 @@ qa-ui-framework/
 ├── src/
 │   ├── main/
 │   │   ├── java/qa/autotest/
-│   │   │   ├── app/dto/              # Data Transfer Objects
-│   │   │   ├── pages/                # Page Object Model
-│   │   │   └── framework/            # Core framework
-│   │   │       ├── drivers/          # WebDriver management
-│   │   │       └── config/           # Configuration
+│   │   │   ├── domain/
+│   │   │   │   ├── dto/              # UserDto, ProductDto, CartDto, CheckoutDto
+│   │   │   │   └── enums/            # SauceDemoProduct
+│   │   │   └── framework/
+│   │   │       ├── assertions/       # CartAssert, CheckoutAssert, ProductAssert
+│   │   │       ├── config/           # TestConfig, BrowserConfig, CredentialConfig,
+│   │   │       │                     # CheckoutConfig, ExecutionConfig, TimeoutConfig,
+│   │   │       │                     # ConfigFactory
+│   │   │       ├── drivers/
+│   │   │       │   ├── browser/      # BrowserProvider, BrowserProviderRegistry,
+│   │   │       │   │                 # ChromeProvider, FirefoxProvider,
+│   │   │       │   │                 # EdgeProvider, SafariProvider
+│   │   │       │   ├── DriverFactory.java
+│   │   │       │   └── DriverManager.java
+│   │   │       ├── listeners/        # AllureSelenideListener
+│   │   │       ├── pages/            # BasePage, LoginPage, InventoryPage,
+│   │   │       │                     # ProductDetailsPage, CartPage,
+│   │   │       │                     # CheckoutStepOnePage, CheckoutStepTwoPage,
+│   │   │       │                     # CheckoutCompletePage
+│   │   │       ├── steps/            # AuthSteps, CartSteps, CheckoutSteps,
+│   │   │       │                     # InventorySteps
+│   │   │       └── utils/            # PriceParser
 │   │   └── resources/
-│   │       ├── config/               # Environment configs
-│   │       └── logback.xml           # Logging config
+│   │       ├── config/               # default.properties, local.properties,
+│   │       │                         # ci.properties
+│   │       └── logback.xml
 │   └── test/
-│       ├── java/examples/            # Test cases
-│       │   ├── login/                # Login tests
-│       │   ├── inventory/            # Inventory tests
-│       │   ├── cart/                 # Cart tests
-│       │   ├── checkout/             # Checkout tests
-│       │   └── navigation/           # Navigation tests
-│       └── resources/
-├── docker/                           # Docker configs
+│       └── java/qa/autotest/
+│           ├── extensions/           # FlakyDetectionExtension
+│           └── tests/
+│               ├── BaseTest.java
+│               ├── cart/             # CartOperationsTests
+│               ├── checkout/         # CheckoutFlowTests
+│               ├── inventory/        # InventoryDisplayTests, InventorySortingTests
+│               ├── login/            # LoginSuccessTests, LoginFailureTests
+│               └── navigation/       # NavigationTests
+├── docker/
 │   ├── Dockerfile
 │   └── docker-compose.yml
-├── .github/workflows/                # CI/CD pipelines
+├── .github/workflows/
 │   ├── test-all.yml
 │   ├── test-login.yml
 │   ├── test-inventory.yml
 │   ├── test-cart.yml
 │   ├── test-checkout.yml
 │   └── test-navigation.yml
-├── docs/                             # Documentation
-└── pom.xml                           # Maven config
+├── docs/
+│   ├── ARCHITECTURE.md
+│   ├── COMMANDS_EXAMPLES.md
+│   ├── PARALLEL_EXECUTION.md
+│   ├── RUN_INSTRUCTIONS.md
+│   ├── TEST_CASES_MATRIX.md
+│   └── WEBDRIVER_CONFIGURATION.md
+├── .env.example
+├── run-tests.sh
+└── pom.xml
 ```
 
 ## Быстрый старт

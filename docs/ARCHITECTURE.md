@@ -9,34 +9,54 @@ UI Test Automation Framework - это современный фреймворк 
 ```
 qa-ui-framework/
 ├── src/main/java/qa/autotest/
-│   ├── app/dto/                 # Data Transfer Objects
-│   │   ├── UserDto.java
-│   │   ├── ProductDto.java
-│   │   ├── CartDto.java
-│   │   └── CheckoutDto.java
-│   ├── pages/                   # Page Object Model
-│   │   ├── BasePage.java
-│   │   ├── LoginPage.java
-│   │   ├── InventoryPage.java
-│   │   ├── ProductDetailsPage.java
-│   │   ├── CartPage.java
-│   │   ├── CheckoutStepOnePage.java
-│   │   ├── CheckoutStepTwoPage.java
-│   │   └── CheckoutCompletePage.java
+│   ├── domain/
+│   │   ├── dto/                     # UserDto, ProductDto, CartDto, CheckoutDto
+│   │   └── enums/                   # SauceDemoProduct
 │   └── framework/
+│       ├── assertions/              # CartAssert, CheckoutAssert, ProductAssert
+│       ├── config/                  # TestConfig, BrowserConfig, CredentialConfig,
+│       │                            # CheckoutConfig, ExecutionConfig, TimeoutConfig,
+│       │                            # ConfigFactory
 │       ├── drivers/
-│       │   └── DriverManager.java  # WebDriver management
-│       ├── config/
-│       │   ├── TestConfig.java    # Configuration interface
-│       │   └── ConfigFactory.java  # Config factory
-│       └── utils/                  # Utility classes
-└── src/test/java/examples/
-    ├── BaseTest.java
-    ├── login/
-    ├── inventory/
-    ├── cart/
-    ├── checkout/
-    └── navigation/
+│       │   ├── browser/             # BrowserProvider (interface),
+│       │   │                        # BrowserProviderRegistry,
+│       │   │                        # ChromeProvider, FirefoxProvider,
+│       │   │                        # EdgeProvider, SafariProvider
+│       │   ├── DriverFactory.java
+│       │   └── DriverManager.java
+│       ├── listeners/               # AllureSelenideListener
+│       ├── pages/                   # BasePage, LoginPage, InventoryPage,
+│       │                            # ProductDetailsPage, CartPage,
+│       │                            # CheckoutStepOnePage, CheckoutStepTwoPage,
+│       │                            # CheckoutCompletePage
+│       ├── steps/                   # AuthSteps, CartSteps, CheckoutSteps,
+│       │                            # InventorySteps
+│       └── utils/                   # PriceParser
+├── src/main/resources/
+│   ├── config/                      # default.properties, local.properties,
+│   │                                # ci.properties
+│   └── logback.xml
+├── src/test/java/qa/autotest/
+│   ├── extensions/                  # FlakyDetectionExtension
+│   └── tests/
+│       ├── BaseTest.java
+│       ├── cart/                    # CartOperationsTests
+│       ├── checkout/                # CheckoutFlowTests
+│       ├── inventory/               # InventoryDisplayTests, InventorySortingTests
+│       ├── login/                   # LoginSuccessTests, LoginFailureTests
+│       └── navigation/              # NavigationTests
+├── docker/
+│   ├── Dockerfile
+│   └── docker-compose.yml
+├── .github/workflows/
+│   ├── test-all.yml
+│   ├── test-login.yml
+│   ├── test-inventory.yml
+│   ├── test-cart.yml
+│   ├── test-checkout.yml
+│   └── test-navigation.yml
+├── docs/
+└── pom.xml
 ```
 
 ## Ключевые компоненты
@@ -69,13 +89,14 @@ public class UserDto {
 **Иерархия:**
 ```
 BasePage (общие элементы: header, cart, burger menu)
-  ├── LoginPage
   ├── InventoryPage
   ├── ProductDetailsPage
   ├── CartPage
   ├── CheckoutStepOnePage
   ├── CheckoutStepTwoPage
   └── CheckoutCompletePage
+
+LoginPage (не наследует BasePage — страница без authenticated header)
 ```
 
 **Принципы:**
