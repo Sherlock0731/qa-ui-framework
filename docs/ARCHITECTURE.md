@@ -49,42 +49,29 @@ qa-ui-framework/
 │   ├── Dockerfile
 │   └── docker-compose.yml
 ├── .github/workflows/
-│   ├── test-all.yml
-│   ├── test-login.yml
-│   ├── test-inventory.yml
-│   ├── test-cart.yml
-│   ├── test-checkout.yml
-│   └── test-navigation.yml
+│   ├── run-tests.yml                # Reusable workflow (единственный источник логики)
+│   ├── test-all.yml                 # Caller: все тесты
+│   ├── test-login.yml               # Caller: login-группа
+│   ├── test-inventory.yml           # Caller: inventory-группа
+│   ├── test-cart.yml                # Caller: cart-группа
+│   ├── test-checkout.yml            # Caller: checkout-группа
+│   └── test-navigation.yml          # Caller: navigation-группа
 ├── docs/
 └── pom.xml
 ```
 
 ## Ключевые компоненты
 
-### 1. Data Transfer Objects (DTO)
+### 1. Domain Model
 
-**Назначение:** Моделирование данных предметной области
+**Назначение:** типизированное представление данных предметной области.
 
-**Особенности:**
-- Использование Lombok для минимизации boilerplate кода
-- Builder pattern для гибкого создания объектов
-- Immutable объекты (где применимо)
-
-**Примеры:**
-```java
-@Data
-@Builder
-public class UserDto {
-    private String username;
-    private String password;
-    private String firstName;
-    private String lastName;
-}
-```
+- `UserDto`, `ProductDto`, `CartDto`, `CheckoutDto` — Lombok `@Builder`, используются в Steps и тестах
+- `SauceDemoProduct` — enum с полями `displayName` (UI-название) и `buttonId` (суффикс `data-test` атрибута). Устраняет runtime string transformation и делает несоответствие между именем и атрибутом видимым на этапе компиляции.
 
 ### 2. Page Object Model
 
-**Назначение:** Инкапсуляция логики взаимодействия с UI
+**Назначение:** инкапсуляция логики взаимодействия с UI.
 
 **Иерархия:**
 ```
@@ -102,110 +89,131 @@ LoginPage (не наследует BasePage — страница без authenti
 **Принципы:**
 - Одна страница = один класс
 - Методы возвращают Page Objects для fluent interface
-- Использование Selenide для упрощения работы с элементами
-- Allure Steps для лучшей отчетности
+- Explicit outcome-контракты: `submitForSuccess()` / `submitExpectingError()` вместо одного `clickLoginButton()` с неопределённым результатом
+- Коллекции — method-locators (защита от StaleElementReferenceException при переиспользовании PO)
+- Одиночные стабильные элементы — instance fields (lazy Selenide-прокси, без рисков)
 
-**Пример:**
+**Burger menu (BasePage):**
+
+React-burger-menu анимирует боковую панель CSS-переходом (~300 мс). Элемент `.bm-menu` присутствует в DOM всегда. `openBurgerMenu()` ожидает видимости `#inventory_sidebar_link` — конкретного интерактивного дочернего элемента, который становится доступным только после завершения анимации. Явный `Duration.ofSeconds(15)` защищает от медленного headless CI без зависимости от глобального `Configuration.timeout`.
+
+### 3. Steps Layer
+
+**Назначение:** бизнес-уровень операций поверх Page Objects.
+
+- Stateless: каждый метод принимает нужный Page Object через параметр и возвращает результирующий
+- Безопасны при параллельном выполнении — нет shared state
+- `AuthSteps` принимает `CredentialConfig` (ISP), не полный `TestConfig`
+
+### 4. Custom AssertJ Assertions
+
+- `CartAssert` — загрузка страницы, количество товаров, наличие конкретного товара
+- `CheckoutAssert` — ошибки валидации, расчёт суммы (subtotal + tax == total), успешность заказа
+- `ProductAssert` — имя, цена, описание, изображение
+
+### 5. WebDriver Management
+
+**DriverFactory** создаёт `WebDriver`-инстансы через `BrowserProvider` из `BrowserProviderRegistry`. Расширение на новый браузер — реализовать `BrowserProvider` и вызвать `register()`. `DriverFactory` не изменяется (OCP).
+
+**DriverManager** управляет ThreadLocal жизненным циклом:
+
 ```java
-@Step("Login with username: {username}")
-public InventoryPage login(String username, String password) {
-    usernameInput.setValue(username);
-    passwordInput.setValue(password);
-    loginButton.click();
-    return new InventoryPage();
-}
+private static final ThreadLocal<WebDriver> driverHolder = new ThreadLocal<>();
 ```
 
-### 3. WebDriver Management
+`initDriver()` также устанавливает `Configuration.timeout`, `Configuration.screenshots`, `Configuration.reportsFolder`, `Configuration.browserSize`. Эти поля — статические, не ThreadLocal. Их запись сосредоточена в одном месте и выполняется только из `initDriver()`, который вызывается из `@BeforeEach` одного потока в рамках `parallel-strict`-форка.
 
-**DriverManager** управляет жизненным циклом WebDriver:
+### 6. Configuration Management
 
-**Возможности:**
-- Автоматическое управление драйверами (WebDriverManager)
-- Поддержка 4 браузера: Chrome, Firefox, Edge, Safari
-- Thread-safe реализация через ThreadLocal
-- Поддержка headless режима
-- Интеграция с Selenium Grid
-- Настройка timeouts и размера окна
+Owner MERGE policy, приоритет (высший → низший):
 
-**Пример:**
-```java
-public static void initDriver(TestConfig config) {
-    String browser = config.browser();
-    WebDriver webDriver = createLocalDriver(browser, config.browserHeadless());
-    driver.set(webDriver);
-    WebDriverRunner.setWebDriver(webDriver);
-}
-```
-
-### 4. Configuration Management
-
-**Использует Owner library для управления конфигурациями:**
-
-**Приоритет загрузки:**
-1. System properties (-Dkey=value)
+1. System properties (`-Dkey=value`)
 2. Environment variables
-3. Environment-specific properties (local.properties, ci.properties)
-4. Default properties (default.properties)
+3. `classpath:config/${env}.properties`
+4. `classpath:config/default.properties`
 
-**Пример:**
-```java
-@Config.Sources({
-    "system:properties",
-    "system:env",
-    "classpath:config/${env}.properties",
-    "classpath:config/default.properties"
-})
-public interface TestConfig extends Config {
-    @Key("browser")
-    String browser();
-}
+ISP-разделение:
+
+| Интерфейс | Ответственность | Потребители |
+|-----------|-----------------|-------------|
+| `BrowserConfig` | браузер, headless, viewport, Grid URL | `DriverFactory`, `DriverManager` |
+| `TimeoutConfig` | page load, implicit (0), explicit | `DriverManager` |
+| `CredentialConfig` | URL приложения, credentials | `AuthSteps` |
+| `CheckoutConfig` | данные формы | `CheckoutSteps` |
+| `ExecutionConfig` | потоки, retry, скриншоты | `BaseTest` |
+| `TestConfig` | композит всех выше | `BaseTest`, `ConfigFactory` |
+
+### 7. BaseTest
+
+`@BeforeEach setUp()`:
+1. `DriverManager.initDriver(config)` — создаёт WebDriver, устанавливает `Configuration.*`
+2. Проверяет, что WebDriver запущен
+3. Инициализирует `loginPage`, `authSteps`, `cartSteps`, `checkoutSteps`, `inventorySteps`
+
+`@BeforeAll setUpAll()`:
+- Double-checked locking на `BaseTest.class` — регистрирует `AllureSelenideListener` ровно один раз
+
+`@AfterEach tearDown()`:
+- `DriverManager.quitDriver()` — quit + ThreadLocal.remove()
+
+### 8. FlakyDetectionExtension
+
+JUnit 5 `TestWatcher`. Хранит историю исходов в `ConcurrentHashMap<String, Outcome>`. Тест становится `FLAKY`, если в рамках одного прогона (с `rerunFailingTestsCount`) он имел противоположные исходы. Аннотирует Allure через `lifecycle API`, выводит сводку в shutdown hook.
+
+## Параллелизм
+
+### Поддерживаемый режим: `parallel-strict`
+
+```bash
+mvn clean test -Pparallel-strict -Dthread.count=4
 ```
 
-### 5. Test Base Class
+`forkCount=4` запускает 4 независимых JVM-процесса. Каждый процесс имеет собственный class loader и собственную копию `com.codeborne.selenide.Configuration`. Внутри форка выполняется один поток — запись в `Configuration` однопоточна и безопасна.
 
-**BaseTest** предоставляет:
-- Инициализацию WebDriver перед каждым тестом
-- Очистку WebDriver после теста
-- Доступ к конфигурации
-- Логирование
-- Поддержку параллельного выполнения
+## CI/CD
+
+### Структура workflows
+
+```
+run-tests.yml          ← reusable, on: workflow_call
+    ↑            ↑
+test-all.yml   test-login.yml / test-cart.yml / ...
+```
+
+`run-tests.yml` принимает inputs: `suite_name`, `test_groups`, `thread_count`, `browser`, `deploy_pages`. Содержит всю логику: установка браузеров, backup/restore Allure history, запуск Maven, создание `executor.json`, деплой на gh-pages, upload артефактов.
+
+Caller-workflows содержат только триггеры и передачу параметров. Изменение любого шага пайплайна вносится в одном файле.
+
+### Allure history
+
+Между прогонами история сохраняется в ветке `gh-pages/history`. Перед тестами копируется в `/tmp/allure-history`, после тестов (включая `always()`) восстанавливается в `target/allure-results/history` перед генерацией отчёта.
+
+### Артефакты
+
+| Артефакт | Retention | Условие |
+|----------|-----------|---------|
+| `allure-results-{suite}` | 30 дней | always |
+| `allure-report-{suite}` | 30 дней | always |
+| `test-logs-{suite}` | 7 дней | always |
+| `screenshots-{suite}` | 7 дней | failure |
 
 ## Паттерны проектирования
 
-### 1. Page Object Pattern
-Инкапсуляция логики страниц в отдельные классы
+| Паттерн | Применение |
+|---------|------------|
+| Page Object + Fluent Interface | все Page классы |
+| Strategy | `BrowserProvider` / `BrowserProviderRegistry` |
+| Factory Method | `DriverFactory.create()` |
+| Registry | `BrowserProviderRegistry` |
+| Builder | все DTO |
+| Singleton | `ConfigFactory` (double-checked locking) |
+| Custom Assertion Builder | `CartAssert`, `CheckoutAssert`, `ProductAssert` |
+| TestWatcher Extension | `FlakyDetectionExtension` |
 
-### 2. Builder Pattern
-Гибкое создание DTO объектов
+## Логирование
 
-### 3. Factory Pattern
-Создание конфигураций и драйверов
+SLF4J + Logback. `SiftingAppender` создаёт отдельный файл для каждого потока по ключу `threadName`:
 
-### 4. Singleton Pattern
-Управление конфигурацией (thread-safe)
-
-### 5. Fluent Interface
-Цепочка вызовов методов для читаемости
-
-## Многопоточность
-
-### Thread-Local WebDriver
-Каждый поток имеет свой экземпляр WebDriver:
-```java
-private static final ThreadLocal<WebDriver> driver = new ThreadLocal<>();
-```
-
-### Параллельное выполнение JUnit 5
-```java
-@Execution(ExecutionMode.CONCURRENT)
-public abstract class BaseTest {
-    // ...
-}
-```
-
-### Логирование
-Каждый поток пишет в отдельный лог-файл:
 ```xml
 <appender name="SIFT" class="ch.qos.logback.classic.sift.SiftingAppender">
     <discriminator>
@@ -214,42 +222,15 @@ public abstract class BaseTest {
 </appender>
 ```
 
+При `parallel-strict` (forked JVM) каждый форк имеет собственный процесс — логи не конкурируют.
+
 ## Интеграция с Allure
 
-### Аннотации
-- `@Epic` - группировка по эпикам
-- `@Feature` - группировка по функциональности
-- `@Story` - группировка по user stories
-- `@Step` - описание шагов
-- `@Severity` - приоритет теста
+Аннотации: `@Epic`, `@Feature`, `@Story`, `@Step`, `@Severity`, `@Description`, `@DisplayName`.
 
-### Вложения
-- Скриншоты при ошибках
-- Логи выполнения
-- HTML исходный код страницы
+Вложения добавляет `AllureSelenideListener` при каждом упавшем Selenide-действии:
+- скриншот (`image/png`)
+- page source (`text/html`)
+- текст ошибки (`text/plain`)
 
-## CI/CD Integration
-
-### GitHub Actions
-- Автоматический запуск тестов
-- Параллельное выполнение
-- Сохранение артефактов (отчеты, логи, скриншоты)
-- Поддержка разных браузеров
-
-### Docker
-- Изолированное окружение
-- Предустановленные браузеры
-- Headless режим по умолчанию
-
-## Лучшие практики
-
-1. **Использование Page Objects** для инкапсуляции логики UI
-2. **DTO для моделирования данных** вместо Map/JSON
-3. **Fluent interface** для читаемости тестов
-4. **Thread-safe** реализация для параллельности
-5. **Централизованная конфигурация** через Owner
-6. **Детальное логирование** с поддержкой многопоточности
-7. **Allure steps** для прозрачных отчетов
-8. **Автоматическое управление драйверами** через WebDriverManager
-
-Фреймворк готов к промышленному использованию и может быть легко адаптирован под специфические требования проекта.
+`FlakyDetectionExtension` добавляет label `flaky=true/false` и текстовое вложение с историей исходов.

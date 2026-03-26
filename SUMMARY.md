@@ -1,289 +1,172 @@
-# UI Test Automation Framework - Краткое описание
+# UI Test Automation Framework — Краткое описание
 
 ## Обзор проекта
 
-**UI Test Automation Framework** - это полнофункциональный фреймворк для автоматизации UI-тестирования веб-приложения [SauceDemo](https://www.saucedemo.com), реализующий 30 критичных функциональных тест-кейсов.
+**UI Test Automation Framework** — полнофункциональный фреймворк для автоматизации UI-тестирования веб-приложения [SauceDemo](https://www.saucedemo.com), реализующий 30 функциональных тест-кейсов.
 
 ## Ключевые особенности
 
 ### Технологический стек
-- **Java 17** - современная версия Java с поддержкой новейших возможностей
-- **Maven** - управление зависимостями и сборка проекта
-- **JUnit 5** - современный фреймворк для тестирования с поддержкой параллельности
-- **Selenide 7.0.4** - удобная обертка над Selenium WebDriver
-- **Selenium 4.16** - автоматизация браузеров
-- **WebDriverManager** - автоматическое управление драйверами
-- **Allure 2.25** - красивые и информативные отчеты
-- **Lombok** - уменьшение boilerplate кода
-- **SLF4J/Logback** - гибкое логирование
-- **Owner** - type-safe конфигурации
+- **Java 17** — современная LTS-версия
+- **Maven** — управление зависимостями и сборка
+- **JUnit 5.10.1** — фреймворк тестирования с поддержкой параллельности
+- **Selenide 7.0.4** — обёртка над Selenium WebDriver
+- **Selenium 4.25** — автоматизация браузеров
+- **WebDriverManager** — автоматическое управление драйверами
+- **Allure 2.25** — отчётность
+- **Lombok** — снижение boilerplate
+- **SLF4J/Logback** — гибкое логирование
+- **Owner** — type-safe конфигурация
 
 ### Архитектурные решения
 
 1. **Page Object Model (POM)**
    - Инкапсуляция логики страниц
-   - Fluent interface для читаемости
+   - Fluent interface с explicit outcome-контрактами (`submitForSuccess` / `submitExpectingError`)
    - Иерархическая структура с BasePage
+   - Method-locators вместо instance fields для коллекций — защита от StaleElement
 
-2. **Data Transfer Objects (DTO)**
-   - Типизированные модели данных
-   - Builder pattern для гибкости
-   - Использование Lombok
+2. **Steps Layer**
+   - Stateless бизнес-шаги (AuthSteps, CartSteps, CheckoutSteps, InventorySteps)
+   - Передача Page Object через параметры — безопасно при параллельном выполнении
 
-3. **Multi-threading Support**
-   - Thread-safe WebDriver через ThreadLocal
-   - Параллельное выполнение на уровне методов
-   - Отдельные логи для каждого потока
-   - Поддержка от 1 до 8+ потоков
+3. **Custom AssertJ Assertions**
+   - `CartAssert`, `CheckoutAssert`, `ProductAssert` — domain-семантика вместо сырых значений
 
-4. **Multi-browser Support**
-   - Chrome, Firefox, Edge, Safari, Opera
-   - Headless режим для CI/CD
-   - Автоматическое управление драйверами
-   - Поддержка Selenium Grid
+4. **Domain Model**
+   - `SauceDemoProduct` enum с `displayName` и `buttonId` — устранение runtime string transformation
+   - DTO с Builder pattern: `UserDto`, `ProductDto`, `CartDto`, `CheckoutDto`
+
+5. **Параллельное выполнение**
+   - Модель: `parallel-strict` (forkCount) — каждый форк является отдельным JVM-процессом
+   - ThreadLocal WebDriver в `DriverManager` — изоляция драйвера per-thread внутри форка
+   - `Configuration.*` устанавливается в `DriverManager.initDriver()` — единственная точка записи
+
+6. **Flaky Detection**
+   - `FlakyDetectionExtension` (JUnit 5 `TestWatcher`) — детектирует тесты с разными исходами в рамках одного прогона
+   - Аннотирует Allure-отчёт через `lifecycle API`, печатает сводку в shutdown hook
+
+7. **CI/CD**
+   - Reusable workflow `run-tests.yml` — единственный источник логики пайплайна
+   - Шесть caller-workflow (test-all + пять suite) делегируют в него через `workflow_call`
+   - Allure history сохраняется между прогонами через gh-pages
 
 ## Структура тестов
 
-### Модули тестирования
-
-| Модуль | Тесты | Описание |
-|--------|-------|----------|
+| Модуль | Тестов | Описание |
+|--------|--------|----------|
 | **Login** | 5 | Авторизация: успешная, с ошибками, валидация |
-| **Inventory** | 6 | Каталог товаров: отображение, сортировка, навигация |
+| **Inventory** | 6 | Каталог: отображение, сортировка, навигация |
 | **Cart** | 8 | Корзина: добавление, удаление, отображение |
-| **Checkout** | 8 | Чекаут: заполнение формы, валидация, завершение |
-| **Navigation** | 3 | Навигация: logout, сброс состояния |
-| **Всего** | **30** | Полное покрытие критичной функциональности |
+| **Checkout** | 8 | Чекаут: форма, валидация, завершение |
+| **Navigation** | 3 | Бургер-меню, logout, reset app state |
+| **Итого** | **30** | |
 
 ### Приоритизация
 
-- **Critical (21 тестов)** - основная функциональность
-- **High (9 тестов)** - важная функциональность
-- **Smoke (5 тестов)** - быстрая проверка работоспособности
+- **Critical** — 21 тест
+- **Normal** — 9 тестов
+- **Smoke** — 5 тестов (подмножество)
 
 ## Запуск тестов
 
-### Быстрый старт
-
 ```bash
-# Все тесты
+# Все тесты последовательно
 mvn clean test
 
-# Конкретная группа
+# Параллельно, 4 JVM-форка
+mvn clean test -Pparallel-strict -Dthread.count=4
+
+# Группа
 mvn clean test -Plogin
-mvn clean test -Pcart
-
-# С выбором браузера
-mvn clean test -Dbrowser=firefox
-
-# Headless режим
-mvn clean test -Dheadless=true
-
-# Параллельное выполнение
-mvn clean test -Dthread.count=4
+mvn clean test -Psmoke
 
 # Через скрипт
 ./run-tests.sh -g smoke -b firefox -t 4 --allure
 ```
 
-### Supported Commands
+## CI/CD
+
+### GitHub Actions
+
+| Файл | Триггер | Назначение |
+|------|---------|------------|
+| `run-tests.yml` | `workflow_call` | Reusable: вся логика пайплайна |
+| `test-all.yml` | push, PR, schedule (04:00 UTC) | Все тесты, деплой Allure на gh-pages |
+| `test-login.yml` | workflow_dispatch | Login-группа |
+| `test-inventory.yml` | workflow_dispatch | Inventory-группа |
+| `test-cart.yml` | workflow_dispatch | Cart-группа |
+| `test-checkout.yml` | workflow_dispatch | Checkout-группа |
+| `test-navigation.yml` | workflow_dispatch | Navigation-группа |
+
+### Docker
 
 ```bash
-# По группам тестов
--Plogin, -Pinventory, -Pcart, -Pcheckout, -Pnavigation, -Psmoke
-
-# Браузеры
--Dbrowser=chrome|firefox|edge|safari|opera
-
-# Headless
--Dheadless=true
-
-# Потоки
--Dthread.count=1..N
+docker-compose -f docker/docker-compose.yml up
+BROWSER=firefox THREAD_COUNT=4 TEST_GROUPS=smoke docker-compose -f docker/docker-compose.yml up
 ```
 
-## CI/CD Integration
-
-### GitHub Actions Workflows
-
-1. **test-all.yml** - полный прогон всех тестов
-2. **test-login.yml** - только login тесты
-3. **test-inventory.yml** - только inventory тесты
-4. **test-cart.yml** - только cart тесты
-5. **test-checkout.yml** - только checkout тесты
-6. **test-navigation.yml** - только navigation тесты
-
-### Docker Support
-
-```bash
-# Запуск в Docker
-docker-compose -f docker/docker-compose.yml up
-
-# С параметрами
-BROWSER=firefox THREAD_COUNT=4 TEST_GROUPS=smoke \
-docker-compose -f docker/docker-compose.yml up
-```
-
-## Отчетность
+## Отчётность
 
 ### Allure Report
 - Детальная визуализация результатов
-- История выполнения тестов
-- Графики и статистика
-- Скриншоты при ошибках
-- Логи выполнения
+- История прогонов (хранится в gh-pages)
 - Группировка по Epic/Feature/Story
+- Скриншоты при ошибках (AllureSelenideListener)
+- Flaky-метки через FlakyDetectionExtension
 
 ### Логирование
 - Общий лог: `target/logs/test-execution.log`
-- Логи по потокам: `target/logs/thread-*.log`
-- Цветной вывод в консоль
-- Разные уровни логирования для разных компонентов
-
-### Скриншоты
-- Автоматические скриншоты при падении теста
-- Сохранение в `target/screenshots/`
-- Прикрепление к Allure отчету
+- Per-thread логи: `target/logs/thread-*.log` (SiftingAppender)
 
 ## Конфигурация
 
-### Properties файлы
-- `default.properties` - базовые настройки
-- `local.properties` - для локальной разработки
-- `ci.properties` - для CI/CD окружения
-
-### Переменные окружения
-```env
-SAUCEDEMO_BASE_URL=[нужное значение]
-USER_STANDARD_USERNAME=[нужное значение]
-USER_STANDARD_PASSWORD=[нужное значение]
-BROWSER=chrome
-THREAD_COUNT=4
-```
-
-### Приоритет загрузки
-1. System properties (-Dkey=value)
+### Приоритет загрузки (Owner MERGE)
+1. System properties (`-Dkey=value`)
 2. Environment variables
-3. Environment-specific .properties
-4. default.properties
+3. `classpath:config/${env}.properties`
+4. `classpath:config/default.properties`
 
-## Документация
+### ISP-разделение конфигурации
+- `BrowserConfig` — браузер, headless, viewport, Grid URL
+- `TimeoutConfig` — page load, implicit (всегда 0), explicit
+- `CredentialConfig` — URL приложения, credentials
+- `CheckoutConfig` — данные формы чекаута
+- `ExecutionConfig` — потоки, retry, скриншоты
 
-Проект включает полную документацию:
+## Статистика
 
-- **README.md** - общее описание и быстрый старт
-- **ARCHITECTURE.md** - детальная архитектура фреймворка
-- **COMMANDS_EXAMPLES.md** - примеры команд запуска
-- **RUN_INSTRUCTIONS.md** - подробная инструкция по запуску
-- **TEST_CASES_MATRIX.md** - матрица всех тест-кейсов
-- **SUMMARY.md** - этот файл
-
-## Статистика проекта
-
-### Размер кодовой базы
 - **Page Objects:** 8 классов
+- **Steps:** 4 класса
+- **Custom Assertions:** 3 класса
 - **DTO:** 4 класса
-- **Test Classes:** 10 классов
+- **Enum:** 1 (SauceDemoProduct, 6 товаров)
+- **Test Classes:** 7 классов
 - **Test Cases:** 30 тестов
-- **Lines of Code:** ~2500+ строк
 
-### Покрытие функциональности
-- ✅ Авторизация (5 сценариев)
-- ✅ Каталог товаров (6 сценариев)
-- ✅ Корзина (8 сценариев)
-- ✅ Процесс заказа (8 сценариев)
-- ✅ Навигация (3 сценария)
+## Поддерживаемые браузеры
 
-### Кроссбраузерность
-- ✅ Chrome (Windows, Linux, macOS only Safari on macOS)
-- ✅ Firefox (Windows, Linux, macOS only Safari on macOS)
+- ✅ Chrome (Windows, Linux, macOS)
+- ✅ Firefox (Windows, Linux, macOS)
 - ✅ Edge (Windows, macOS)
-- ✅ Safari (macOS only)
-- ✅ Opera (Windows, Linux, macOS only Safari on macOS)
-
-## Поддерживаемые платформы
-
-### Operating Systems
-- ✅ Windows 10/11
-- ✅ Linux (Ubuntu, Debian, CentOS)
-- ✅ macOS (Intel & Apple Silicon)
-
-### CI/CD Platforms
-- ✅ GitHub Actions
-- ✅ Jenkins
-- ✅ GitLab CI
-- ✅ Azure DevOps
-- ✅ CircleCI
-
-## Best Practices
-
-Фреймворк реализует следующие best practices:
-
-1. **Page Object Pattern** - инкапсуляция UI логики
-2. **DRY Principle** - избегание дублирования кода
-3. **Single Responsibility** - один класс = одна ответственность
-4. **Fluent Interface** - читаемые цепочки вызовов
-5. **Thread Safety** - безопасная многопоточность
-6. **Configuration Management** - централизованные настройки
-7. **Detailed Logging** - информативное логирование
-8. **Proper Assertions** - использование AssertJ fluent API
-9. **Test Independence** - тесты не зависят друг от друга
-10. **CI/CD Ready** - готовность к интеграции
+- ✅ Safari (macOS)
 
 ## Требования
 
-### Минимальные
 - Java 17+
 - Maven 3.8+
-- 4 GB RAM
-- 2 GB свободного места на диске
-
-### Рекомендуемые
-- Java 17+
-- Maven 3.9+
-- 8 GB RAM
-- 5 GB свободного места на диске
-- SSD для лучшей производительности
+- 4 GB RAM (8 GB рекомендуется при 4+ форках)
 
 ## Производительность
 
-### Время выполнения
-
 | Конфигурация | Время |
 |--------------|-------|
-| Все тесты (1 поток) | ~15-20 минут |
-| Все тесты (4 потока) | ~5-7 минут |
-| Smoke тесты (1 поток) | ~3-4 минуты |
-| Login тесты (2 потока) | ~1-2 минуты |
-
-### Оптимизация
-- Параллельное выполнение уменьшает время в 3-4 раза
-- Headless режим ускоряет тесты на 10-15%
-- Использование SSD ускоряет на 20-30%
-
-## Roadmap
-
-### Planned Features
-- [ ] Интеграция с TestRail
-- [ ] Поддержка мобильных браузеров
-- [ ] Visual regression testing
-- [ ] API testing integration
-- [ ] Performance testing capabilities
-- [ ] Database validation
-
-## Контакты и поддержка
-
-- **Документация:** `/docs` папка проекта
-- **Issues:** GitHub Issues
-- **CI/CD:** GitHub Actions
-
-## Лицензия
-
-MIT License - свободное использование и модификация
+| 30 тестов, 1 поток | ~15–20 мин |
+| 30 тестов, 4 форка (`parallel-strict`) | ~5–7 мин |
+| Smoke (5 тестов), 1 поток | ~3–4 мин |
 
 ---
 
 **Version:** 1.0.0  
-**Author**: Vitaliy Popravka  
-**Last Updated:** December 2024  
+**Author:** Vitaliy Popravka  
 **Status:** ✅ Production Ready
