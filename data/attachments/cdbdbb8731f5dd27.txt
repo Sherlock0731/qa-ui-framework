@@ -1,6 +1,0 @@
-Element should be visible {#inventory_sidebar_link}
-Element: '<a class="bm-item menu-item" data-test="inventory-sidebar-link" href="#" id="inventory_sidebar_link" displayed:false></a>'
-Actual value: hidden
-Screenshot: file:/home/runner/work/qa-ui-framework/qa-ui-framework/target/screenshots/1776060922333.0.png
-Page source: file:/home/runner/work/qa-ui-framework/qa-ui-framework/target/screenshots/1776060922333.0.html
-Timeout: 15 s.
