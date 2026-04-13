@@ -19,20 +19,31 @@ import static com.codeborne.selenide.Selenide.$;
  * lookup happens only when the element is actually needed, and they do not
  * pollute the object graph of every subclass with navigation concerns.
  *
- * <h3>Burger-menu animation on CI</h3>
- * The react-burger-menu library animates the sidebar with a CSS transition.
- * The {@code .bm-menu} container is present in the DOM at all times but its
- * {@code display} / {@code visibility} transitions over ~300 ms.  In headless
- * Chrome on CI this transition can exceed Selenide's default per-condition
- * poll interval, causing {@code shouldBe(visible)} to fire before the animation
- * completes.
+ * <h3>Burger menu — open/close detection</h3>
+ * The react-burger-menu library animates the sidebar with a CSS transition and
+ * controls child visibility via {@code visibility: hidden} on ancestor elements.
+ * Selenide's {@code Condition.visible} delegates to WebDriver {@code isDisplayed()},
+ * which returns {@code false} when any ancestor has {@code visibility: hidden} —
+ * even if the element itself is present in the DOM and has no explicit hidden style.
  *
- * <p>Fix: instead of waiting on the outer {@code .bm-menu} container, we wait
- * for a concrete interactive child element ({@code #inventory_sidebar_link}) to
- * become clickable.  That element is only reachable once the animation has
- * fully completed, making the wait functionally correct regardless of animation
- * speed.  An explicit {@link Duration} of 15 s is passed to absorb worst-case
- * CI latency without relying on the global {@code Configuration.timeout}.
+ * <p>Two previous strategies failed for this reason:
+ * <ul>
+ *   <li>Waiting on {@code .bm-menu} container — always present, transitions slowly</li>
+ *   <li>Waiting on {@code #inventory_sidebar_link visible} — correct element, but
+ *       {@code isDisplayed()} returns {@code false} while any ancestor carries
+ *       {@code visibility: hidden}, which persists for the full animation duration
+ *       in headless Chrome 146+</li>
+ * </ul>
+ *
+ * <p>Current strategy: wait for {@code #react-burger-cross-btn} to become visible.
+ * This button is rendered by react-burger-menu only after the open animation
+ * completes — it is not in the DOM (or is {@code display: none}) while the menu
+ * is closed, and becomes {@code display: block; visibility: visible} only when
+ * the panel is fully open.  This makes it a reliable open-state marker independent
+ * of the {@code visibility} propagation chain on menu items.
+ *
+ * <p>An explicit {@link Duration} of 15 s is passed to absorb worst-case
+ * headless-CI animation latency without depending on {@code Configuration.timeout}.
  *
  * <h3>Burger-menu state contract</h3>
  * {@link #closeBurgerMenu()} assumes the menu is already open.  Guard-conditions
@@ -103,7 +114,7 @@ public abstract class BasePage {
     public BasePage openBurgerMenu() {
         log.info("Opening burger menu");
         burgerMenuButton().click();
-        allItemsLink().shouldBe(Condition.visible, Duration.ofSeconds(15));
+        closeMenuButton().shouldBe(Condition.visible, Duration.ofSeconds(15));
         return this;
     }
 
@@ -112,12 +123,10 @@ public abstract class BasePage {
      *
      * <p>Precondition: the menu must be open.
      *
-     * <p>After clicking the close button we wait for the cross-button itself to
-     * become invisible rather than checking {@code sidebarMenu().shouldNotBe(visible)}.
-     * The {@code .bm-menu} container visibility is driven by the same CSS
-     * transition as the close button — once the button has disappeared the
-     * container has also finished animating.  Explicit {@link Duration} of 15 s
-     * for consistency with {@link #openBurgerMenu()}.
+     * <p>Clicks the close (X) button and waits for it to disappear — the same
+     * element used as an open-state marker in {@link #openBurgerMenu()}.
+     * Once the X button is gone the close animation has completed.
+     * Explicit {@link Duration} of 15 s for consistency.
      *
      * <p>If the menu is not open, Selenide will throw a timeout exception —
      * this is intentional (fail-fast on wrong test state).
