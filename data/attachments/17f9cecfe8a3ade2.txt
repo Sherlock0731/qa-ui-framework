@@ -1,3 +1,0 @@
-Test: qa.autotest.tests.checkout.CheckoutFlowTests#testCheckoutTotalCalculation
-Status: FAIL
-Flaky: false

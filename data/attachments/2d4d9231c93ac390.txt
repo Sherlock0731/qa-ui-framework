@@ -1,3 +1,0 @@
-Test: qa.autotest.tests.inventory.InventorySortingTests#testSortByPriceHighToLow
-Status: FAIL
-Flaky: false

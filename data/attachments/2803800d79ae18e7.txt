@@ -1,3 +1,0 @@
-Test: qa.autotest.tests.login.LoginFailureTests#testLoginWithEmptyFields
-Status: FAIL
-Flaky: false

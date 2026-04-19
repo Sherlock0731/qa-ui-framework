@@ -1,3 +1,0 @@
-Test: qa.autotest.tests.login.LoginFailureTests#testLoginWithInvalidUsername
-Status: FAIL
-Flaky: false
