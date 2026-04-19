@@ -22,7 +22,7 @@
         <junit.version>5.10.1</junit.version>
         <selenide.version>7.0.4</selenide.version>
         <selenium.version>4.25.0</selenium.version>
-        <webdrivermanager.version>5.6.3</webdrivermanager.version>
+        <webdrivermanager.version>5.9.2</webdrivermanager.version>
         <assertj.version>3.24.2</assertj.version>
         <allure.version>2.25.0</allure.version>
         <lombok.version>1.18.30</lombok.version>

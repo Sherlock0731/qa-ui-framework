@@ -9,18 +9,10 @@
 # Inputs
 # ──────
 # suite_name    Human-readable label used in artifact names and check titles.
-#               Example: "All Tests", "Login", "Cart"
-#
 # test_groups   Maven -Dgroups value.  Empty string = run all tests.
-#               Example: "", "login", "cart", "checkout", "inventory", "navigation"
-#
 # thread_count  Number of JVM forks for parallel-strict execution (default: 4).
-#
 # browser       Browser to use (default: chrome).
-#
 # deploy_pages  Whether to deploy the Allure report to GitHub Pages (default: true).
-#               Set to false for suite-specific runs that should not overwrite
-#               the main report.
 
 on:
   workflow_call:
@@ -80,10 +72,15 @@ jobs:
           java-version: 17
           cache: maven
 
-      - name: Install browsers
-        run: |
-          sudo apt-get update -qq
-          sudo apt-get install -y google-chrome-stable firefox
+      - name: Set up Chrome
+        uses: browser-actions/setup-chrome@v1
+        with:
+          chrome-version: stable
+
+      - name: Set up Firefox
+        uses: browser-actions/setup-firefox@v1
+        with:
+          firefox-version: latest
 
       - name: Checkout gh-pages (Allure history)
         uses: actions/checkout@v4
