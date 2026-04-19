@@ -1,3 +1,0 @@
-Test: qa.autotest.tests.navigation.NavigationTests#testLogoutThroughBurgerMenu
-Status: PASS
-Flaky: false

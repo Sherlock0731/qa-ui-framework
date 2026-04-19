@@ -1,0 +1,3 @@
+Test: qa.autotest.tests.cart.CartOperationsTests#testRemoveProductFromCartPage
+Status: FAIL
+Flaky: false

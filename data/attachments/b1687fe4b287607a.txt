@@ -1,3 +1,0 @@
-Test: qa.autotest.tests.cart.CartOperationsTests#testAddProductToCart
-Status: PASS
-Flaky: false

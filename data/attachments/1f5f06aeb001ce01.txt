@@ -1,0 +1,3 @@
+Test: qa.autotest.tests.inventory.InventorySortingTests#testSortByNameAscending
+Status: FAIL
+Flaky: false

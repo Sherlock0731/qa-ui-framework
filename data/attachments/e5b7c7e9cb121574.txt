@@ -1,3 +1,0 @@
-Test: qa.autotest.tests.inventory.InventoryDisplayTests#testNavigateToProductDetails
-Status: PASS
-Flaky: false

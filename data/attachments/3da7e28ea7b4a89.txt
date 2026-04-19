@@ -1,3 +1,0 @@
-Test: qa.autotest.tests.inventory.InventorySortingTests#testSortByNameAscending
-Status: PASS
-Flaky: false

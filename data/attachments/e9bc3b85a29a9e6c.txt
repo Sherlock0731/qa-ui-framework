@@ -1,0 +1,3 @@
+Test: qa.autotest.tests.login.LoginSuccessTests#testSuccessfulLoginWithStandardUser
+Status: FAIL
+Flaky: false

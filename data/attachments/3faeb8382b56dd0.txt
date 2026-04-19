@@ -1,0 +1,3 @@
+Test: qa.autotest.tests.checkout.CheckoutFlowTests#testCheckoutWithValidInformation
+Status: FAIL
+Flaky: false

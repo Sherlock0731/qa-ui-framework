@@ -1,3 +1,0 @@
-Test: qa.autotest.tests.login.LoginFailureTests#testLoginWithInvalidPassword
-Status: PASS
-Flaky: false

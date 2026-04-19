@@ -1,0 +1,3 @@
+Test: qa.autotest.tests.checkout.CheckoutFlowTests#testCheckoutWithoutFirstName
+Status: FAIL
+Flaky: false

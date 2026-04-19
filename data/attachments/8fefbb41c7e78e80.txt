@@ -1,0 +1,3 @@
+Test: qa.autotest.tests.login.LoginFailureTests#testLoginWithInvalidPassword
+Status: FAIL
+Flaky: false
