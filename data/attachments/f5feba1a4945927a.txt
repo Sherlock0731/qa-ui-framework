@@ -1,0 +1,6 @@
+Element should be visible {#react-burger-cross-btn}
+Element: '<button id="react-burger-cross-btn" type="button" displayed:false></button>'
+Actual value: hidden
+Screenshot: file:/home/runner/work/qa-ui-framework/qa-ui-framework/target/screenshots/1778219807033.0.png
+Page source: file:/home/runner/work/qa-ui-framework/qa-ui-framework/target/screenshots/1778219807033.0.html
+Timeout: 15 s.
