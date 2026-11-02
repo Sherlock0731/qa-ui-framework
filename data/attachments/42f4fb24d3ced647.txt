@@ -1,3 +1,0 @@
-Test: qa.autotest.tests.checkout.CheckoutFlowTests#testCancelOnCheckoutOverviewPage
-Status: FAIL
-Flaky: false
