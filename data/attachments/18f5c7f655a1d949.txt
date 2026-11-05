@@ -1,0 +1,3 @@
+Test: qa.autotest.tests.navigation.NavigationTests#testNavigateToAllItems
+Status: PASS
+Flaky: false
