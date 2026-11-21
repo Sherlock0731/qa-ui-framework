@@ -1,3 +1,0 @@
-Test: qa.autotest.tests.navigation.NavigationTests#testResetAppState
-Status: FAIL
-Flaky: false
