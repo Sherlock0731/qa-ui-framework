@@ -1,10 +1,14 @@
 package qa.autotest.framework.pages;
 
 import com.codeborne.selenide.Condition;
+import com.codeborne.selenide.Selenide;
 import com.codeborne.selenide.SelenideElement;
+import com.codeborne.selenide.WebDriverConditions;
 import io.qameta.allure.Step;
 import lombok.extern.slf4j.Slf4j;
 import qa.autotest.domain.dto.CheckoutDto;
+
+import java.time.Duration;
 
 import static com.codeborne.selenide.Selenide.$;
 
@@ -54,7 +58,15 @@ public class CheckoutStepOnePage extends BasePage {
     public CartPage clickCancel() {
         log.info("Clicking Cancel button");
         cancelButton.click();
-        return new CartPage();
+        // Wait for the navigation back to cart.html to actually complete before
+        // handing back the page object. Without this, callers that immediately
+        // read cart state (e.g. CartAssert.hasItemCount()) can race the browser:
+        // Selenide's $$(...).size() does not auto-wait, so it can read 0 items
+        // from the still-unloaded cart page. Mirrors CheckoutStepTwoPage.clickCancel().
+        Selenide.webdriver().shouldHave(
+                WebDriverConditions.urlContaining("cart"),
+                Duration.ofSeconds(10));
+        return new CartPage().waitForPageLoad();
     }
     
     @Step("Get error message")
